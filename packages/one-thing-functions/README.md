@@ -16,10 +16,10 @@ Rules default to FP-first domain records:
 ```sh
 npx one-thing-functions init
 npm install -D one-thing-functions
-npm run lint:functions
+npm run lint:functions:audit
 ```
 
-`init` detects common roots (`src`, `lib`, `app`, `scripts`, `packages`, etc.). If none exist, it falls back to `.`. The default `lint:functions` script is advisory and exits successfully after reporting findings. Use `lint:functions:strict` when ready for CI enforcement.
+`init` detects common roots (`src`, `lib`, `app`, `scripts`, `packages`, etc.). If none exist, it falls back to `.`. `lint:functions:audit` is advisory and exits successfully after reporting findings. Use `lint:functions` when ready for CI enforcement.
 
 Custom roots:
 

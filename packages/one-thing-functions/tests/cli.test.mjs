@@ -2,10 +2,12 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const cli = path.resolve("bin/one-thing-functions.mjs");
+const testDir = path.dirname(fileURLToPath(import.meta.url));
+const cli = path.resolve(testDir, "../bin/one-thing-functions.mjs");
 
 function tempFile(source) {
   const dir = mkdtempSync(path.join(tmpdir(), "otf-cli-"));

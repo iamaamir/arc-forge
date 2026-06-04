@@ -38,7 +38,7 @@ function runInit() {
   const changes = initProject({ roots });
   if (changes.length === 0) console.log("one-thing-functions already initialized");
   else console.log(changes.join("\n"));
-  console.log("Next: npm install -D one-thing-functions && npm run lint:functions");
+  console.log("Next: npm install -D one-thing-functions && npm run lint:functions:audit");
 }
 
 function printHelp() {

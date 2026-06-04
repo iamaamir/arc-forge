@@ -140,17 +140,17 @@ Project setup for new or existing codebases:
 ```sh
 npx one-thing-functions init
 npm install -D one-thing-functions
-npm run lint:functions
+npm run lint:functions:audit
 ```
 
-`init` defaults to advisory mode. Ask the human before turning strict mode into CI. Suggested question: "Should one-thing-functions stay advisory for now, or should I wire `npm run lint:functions:strict` into CI once exceptions are configured?"
+`init` creates both advisory and strict scripts. Ask the human before turning strict mode into CI. Suggested question: "Should one-thing-functions stay advisory with `npm run lint:functions:audit`, or should I wire strict `npm run lint:functions` into CI once exceptions are configured?"
 
 For custom roots:
 ```sh
 npx one-thing-functions init --roots=src,scripts
 ```
 
-`init` is safe to use in both new and old projects. It detects common roots (`src`, `lib`, `app`, `scripts`, `packages`, etc.), falls back to `.`, creates `one-thing-functions.config.mjs` if missing, and adds/updates advisory `scripts.lint:functions` plus strict `scripts.lint:functions:strict` in `package.json` when present.
+`init` is safe to use in both new and old projects. It detects common roots (`src`, `lib`, `app`, `scripts`, `packages`, etc.), falls back to `.`, creates `one-thing-functions.config.mjs` if missing, and adds/updates advisory `scripts.lint:functions:audit` plus strict `scripts.lint:functions` in `package.json` when present.
 
 If `npx one-thing-functions` is unavailable, still follow rules manually and add checker later.
 
@@ -160,13 +160,13 @@ If `npx one-thing-functions` is unavailable, still follow rules manually and add
 2. Run `npx one-thing-functions init` before feature code grows.
 3. Choose line limit and exception policy in `one-thing-functions.config.mjs`.
 4. Model inputs as domain records at boundaries.
-5. Add `lint:functions` to project checks.
+5. Add `lint:functions:audit` to project checks first; ask before strict CI.
 6. Review new public APIs against rules during design.
 
 ## When refactoring existing code
 
 1. Run `npx one-thing-functions init --roots=<roots>` to install checker config and scripts.
-2. Run `npm run lint:functions` to get advisory baseline violations.
+2. Run `npm run lint:functions:audit` to get advisory baseline violations.
 3. Audit violations before editing.
 4. Refactor one slice at a time.
 5. Preserve behavior; run tests after each slice.
