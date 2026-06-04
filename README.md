@@ -62,7 +62,9 @@ npm run publish -- minor
 npm run publish -- major
 ```
 
-The release script requires a clean working tree, runs tests, bumps `one-thing-functions`, commits the version change, creates a `v*` tag, pushes the current branch, and pushes the tag.
+The release script runs locally. It requires a clean working tree, runs tests, bumps `one-thing-functions`, commits the version change, creates a `v*` tag, pushes the current branch, and pushes the tag.
+
+The GitHub workflow never bumps versions or writes to `main`. It only publishes the package version already committed on the pushed tag. This keeps it compatible with protected branches.
 
 The workflow publishes all npm workspace packages to npmjs.com using npm Trusted Publishing (OIDC), so no npm token secret is needed. Skills are installed directly from this GitHub repository via `npx skills add`, so adding future skills under `skills/` needs no publish-infra change.
 
