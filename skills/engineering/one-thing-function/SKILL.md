@@ -84,22 +84,71 @@ range(start, end)
 
 Keep exceptions rare, documented, and checker-allowlisted.
 
+## Checker CLI
+
+Use `one-thing-functions` whenever possible instead of hand-written regex audits.
+
+Quick audit:
+```sh
+npx one-thing-functions check src
+```
+
+Multiple roots:
+```sh
+npx one-thing-functions check src scripts tests
+```
+
+With profile:
+```sh
+npx one-thing-functions check src --profile=legacy-migration
+```
+
+With config:
+```sh
+npx one-thing-functions check src --config=one-thing-functions.config.mjs
+```
+
+Example config:
+```js
+export default {
+  profile: "fp-first",
+  roots: ["src", "scripts"],
+  maxLines: 25,
+  utilityAllowlist: ["clamp", "range"],
+};
+```
+
+Recommended package script:
+```sh
+npm pkg set scripts.lint:functions="one-thing-functions check src"
+npm install -D one-thing-functions
+```
+
+Then run:
+```sh
+npm run lint:functions
+```
+
+If `npx one-thing-functions` is unavailable, still follow rules manually and add checker later.
+
 ## When starting a new codebase
 
 1. Write rules into project instructions first.
-2. Add checker before feature code grows.
+2. Add `one-thing-functions` before feature code grows.
 3. Choose line limit and exception policy.
 4. Model inputs as domain records at boundaries.
-5. Review new public APIs against rules during design.
+5. Add `lint:functions` to project checks.
+6. Review new public APIs against rules during design.
 
 ## When refactoring existing code
 
-1. Audit violations before editing.
-2. Refactor one slice at a time.
-3. Preserve behavior; run tests after each slice.
-4. Replace multi-arg clusters with named domain records only when concept is real.
-5. Update checker as rules become clearer.
-6. Before completion, run full checks.
+1. Run `npx one-thing-functions check <roots...>` first.
+2. Audit violations before editing.
+3. Refactor one slice at a time.
+4. Preserve behavior; run tests after each slice.
+5. Replace multi-arg clusters with named domain records only when concept is real.
+6. Update checker config as rules become clearer.
+7. Before completion, run full checks.
 
 ## Checker guidance
 
