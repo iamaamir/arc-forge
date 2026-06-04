@@ -118,7 +118,7 @@ export default {
 };
 ```
 
-Recommended setup:
+Project setup for new or existing codebases:
 ```sh
 npx one-thing-functions init
 npm install -D one-thing-functions
@@ -129,6 +129,8 @@ For custom roots:
 ```sh
 npx one-thing-functions init --roots=src,scripts
 ```
+
+`init` is safe to use in both new and old projects. It creates `one-thing-functions.config.mjs` if missing and adds/updates `scripts.lint:functions` in `package.json` when present.
 
 If `npx one-thing-functions` is unavailable, still follow rules manually and add checker later.
 
@@ -143,13 +145,14 @@ If `npx one-thing-functions` is unavailable, still follow rules manually and add
 
 ## When refactoring existing code
 
-1. Run `npx one-thing-functions check <roots...>` first.
-2. Audit violations before editing.
-3. Refactor one slice at a time.
-4. Preserve behavior; run tests after each slice.
-5. Replace multi-arg clusters with named domain records only when concept is real.
-6. Update checker config as rules become clearer.
-7. Before completion, run full checks.
+1. Run `npx one-thing-functions init --roots=<roots>` to install checker config and script.
+2. Run `npm run lint:functions` to get baseline violations.
+3. Audit violations before editing.
+4. Refactor one slice at a time.
+5. Preserve behavior; run tests after each slice.
+6. Replace multi-arg clusters with named domain records only when concept is real.
+7. Update checker config as rules become clearer.
+8. Before completion, run full checks.
 
 ## Checker guidance
 
