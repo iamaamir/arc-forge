@@ -1,4 +1,4 @@
-# @iamaamir/one-thing-functions
+# one-thing-functions
 
 Strict function-design checker CLI.
 
@@ -14,9 +14,9 @@ Rules default to FP-first domain records:
 ## CLI
 
 ```sh
-npx @iamaamir/one-thing-functions check src
-npx @iamaamir/one-thing-functions check src --profile=legacy-migration
-npx @iamaamir/one-thing-functions check src --config=one-thing-functions.config.mjs
+npx one-thing-functions check src
+npx one-thing-functions check src --profile=legacy-migration
+npx one-thing-functions check src --config=one-thing-functions.config.mjs
 ```
 
 ## Config

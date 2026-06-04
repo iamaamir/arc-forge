@@ -1,5 +1,5 @@
 {
-  "name": "@iamaamir/one-thing-functions",
+  "name": "one-thing-functions",
   "version": "0.1.0",
   "description": "Strict function-design checker CLI.",
   "type": "module",
@@ -28,9 +28,6 @@
     "type": "git",
     "url": "git+https://github.com/iamaamir/arc-forge.git",
     "directory": "packages/one-thing-functions"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
   },
   "engines": {
     "node": ">=20"

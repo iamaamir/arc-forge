@@ -28,12 +28,12 @@ npx skills add iamaamir/arc-forge --list
 
 ## Tools
 
-- [`@iamaamir/one-thing-functions`](packages/one-thing-functions) — checker CLI for one-thing function rules.
+- [`one-thing-functions`](packages/one-thing-functions) — checker CLI for one-thing function rules.
 
 Run checker after package publish:
 
 ```sh
-npx @iamaamir/one-thing-functions check src
+npx one-thing-functions check src
 ```
 
 Run checker from local checkout:
@@ -47,9 +47,9 @@ node packages/one-thing-functions/bin/one-thing-functions.mjs check src
 Publish everything in one go:
 
 1. Push changes to GitHub.
-2. Create a GitHub release, or run the `Publish GitHub Packages` workflow manually.
+2. Create a GitHub release, or run the `Publish npm packages` workflow manually.
 
-The workflow publishes all npm workspace packages. Skills are installed directly from this GitHub repository via `npx skills add`, so adding future skills under `skills/` needs no publish-infra change.
+The workflow publishes all npm workspace packages to npmjs.com using `NPM_TOKEN`. Skills are installed directly from this GitHub repository via `npx skills add`, so adding future skills under `skills/` needs no publish-infra change.
 
 ## Development
 
