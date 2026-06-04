@@ -1,0 +1,18 @@
+node_modules/
+.DS_Store
+.env
+.env.*
+!.env.example
+coverage/
+dist/
+*.log
+npm-debug.log*
+
+# package manager caches
+.npm/
+.pnpm-store/
+.yarn/
+
+# editor
+.vscode/
+.idea/

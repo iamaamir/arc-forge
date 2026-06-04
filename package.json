@@ -1,0 +1,21 @@
+{
+  "name": "arc-forge",
+  "version": "0.1.0",
+  "description": "Reusable agent skills and code-discipline tools.",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "node --test packages/one-thing-functions/tests/*.test.mjs",
+    "check:skills": "npx skills add . --list"
+  },
+  "keywords": [
+    "agent-skills",
+    "skills",
+    "coding-agent",
+    "code-discipline"
+  ],
+  "license": "MIT"
+}

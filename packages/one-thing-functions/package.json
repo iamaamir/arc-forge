@@ -1,0 +1,33 @@
+{
+  "name": "one-thing-functions",
+  "version": "0.1.0",
+  "description": "Strict function-design checker CLI.",
+  "type": "module",
+  "bin": {
+    "one-thing-functions": "./bin/one-thing-functions.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "profiles",
+    "examples",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  },
+  "keywords": [
+    "lint",
+    "functions",
+    "single-responsibility",
+    "agent-skills",
+    "refactoring"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "acorn": "^8.16.0"
+  }
+}
