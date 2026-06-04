@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 import { checkProjectAsync, formatViolations } from "../src/check.mjs";
+import { initProject } from "../src/init.mjs";
 
 const args = process.argv.slice(2);
 const command = args[0] || "help";
 
 if (command === "check") await runCheck();
+else if (command === "init" || command === "setup") runInit();
 else printHelp();
 
 async function runCheck() {
@@ -27,10 +29,19 @@ function getOptionValue(name) {
   return option ? option.slice(name.length + 1) : undefined;
 }
 
+function runInit() {
+  const roots = getOptionValue("--roots")?.split(",").filter(Boolean) || ["src"];
+  const changes = initProject({ roots });
+  if (changes.length === 0) console.log("one-thing-functions already initialized");
+  else console.log(changes.join("\n"));
+  console.log("Next: npm install -D one-thing-functions && npm run lint:functions");
+}
+
 function printHelp() {
   console.log(`one-thing-functions
 
 Usage:
   one-thing-functions check <roots...> [--config=path] [--profile=fp-first]
+  one-thing-functions init [--roots=src,scripts]
 `);
 }

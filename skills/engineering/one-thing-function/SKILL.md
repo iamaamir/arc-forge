@@ -118,15 +118,16 @@ export default {
 };
 ```
 
-Recommended package script:
+Recommended setup:
 ```sh
-npm pkg set scripts.lint:functions="one-thing-functions check src"
+npx one-thing-functions init
 npm install -D one-thing-functions
+npm run lint:functions
 ```
 
-Then run:
+For custom roots:
 ```sh
-npm run lint:functions
+npx one-thing-functions init --roots=src,scripts
 ```
 
 If `npx one-thing-functions` is unavailable, still follow rules manually and add checker later.
@@ -134,8 +135,8 @@ If `npx one-thing-functions` is unavailable, still follow rules manually and add
 ## When starting a new codebase
 
 1. Write rules into project instructions first.
-2. Add `one-thing-functions` before feature code grows.
-3. Choose line limit and exception policy.
+2. Run `npx one-thing-functions init` before feature code grows.
+3. Choose line limit and exception policy in `one-thing-functions.config.mjs`.
 4. Model inputs as domain records at boundaries.
 5. Add `lint:functions` to project checks.
 6. Review new public APIs against rules during design.

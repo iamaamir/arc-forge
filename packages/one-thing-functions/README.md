@@ -11,6 +11,20 @@ Rules default to FP-first domain records:
 - no array packs
 - no object bags outside boundary/factory records
 
+## Setup
+
+```sh
+npx one-thing-functions init
+npm install -D one-thing-functions
+npm run lint:functions
+```
+
+Custom roots:
+
+```sh
+npx one-thing-functions init --roots=src,scripts
+```
+
 ## CLI
 
 ```sh
