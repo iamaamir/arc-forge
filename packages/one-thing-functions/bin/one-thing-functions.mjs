@@ -16,7 +16,7 @@ async function runCheck() {
   const violations = await checkProjectAsync({ roots, configPath, profile });
   if (violations.length === 0) return;
   console.error(formatViolations(violations));
-  process.exitCode = 1;
+  if (!hasFlag("--advisory")) process.exitCode = 1;
 }
 
 function getRoots() {
@@ -27,6 +27,10 @@ function getRoots() {
 function getOptionValue(name) {
   const option = args.find((arg) => arg.startsWith(`${name}=`));
   return option ? option.slice(name.length + 1) : undefined;
+}
+
+function hasFlag(name) {
+  return args.includes(name);
 }
 
 function runInit() {
@@ -41,7 +45,7 @@ function printHelp() {
   console.log(`one-thing-functions
 
 Usage:
-  one-thing-functions check <roots...> [--config=path] [--profile=fp-first]
+  one-thing-functions check <roots...> [--config=path] [--profile=fp-first] [--advisory]
   one-thing-functions init [--roots=src,scripts]
 `);
 }

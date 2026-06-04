@@ -19,7 +19,7 @@ npm install -D one-thing-functions
 npm run lint:functions
 ```
 
-`init` detects common roots (`src`, `lib`, `app`, `scripts`, `packages`, etc.). If none exist, it falls back to `.`.
+`init` detects common roots (`src`, `lib`, `app`, `scripts`, `packages`, etc.). If none exist, it falls back to `.`. The default `lint:functions` script is advisory and exits successfully after reporting findings. Use `lint:functions:strict` when ready for CI enforcement.
 
 Custom roots:
 
@@ -30,6 +30,7 @@ npx one-thing-functions init --roots=src,scripts
 ## CLI
 
 ```sh
+npx one-thing-functions check src --advisory
 npx one-thing-functions check src
 npx one-thing-functions check src --profile=legacy-migration
 npx one-thing-functions check src --config=one-thing-functions.config.mjs

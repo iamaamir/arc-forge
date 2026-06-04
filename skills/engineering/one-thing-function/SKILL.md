@@ -106,9 +106,9 @@ Keep exceptions intentional, documented, and checker-allowlisted when used in CI
 
 Use `one-thing-functions` whenever possible instead of hand-written regex audits. By default, treat checker output as an audit list. Only wire it as a hard CI gate after agreeing on project-specific exceptions.
 
-Quick audit:
+Quick advisory audit:
 ```sh
-npx one-thing-functions check src
+npx one-thing-functions check src --advisory
 ```
 
 Multiple roots:
@@ -143,12 +143,14 @@ npm install -D one-thing-functions
 npm run lint:functions
 ```
 
+`init` defaults to advisory mode. Ask the human before turning strict mode into CI. Suggested question: "Should one-thing-functions stay advisory for now, or should I wire `npm run lint:functions:strict` into CI once exceptions are configured?"
+
 For custom roots:
 ```sh
 npx one-thing-functions init --roots=src,scripts
 ```
 
-`init` is safe to use in both new and old projects. It detects common roots (`src`, `lib`, `app`, `scripts`, `packages`, etc.), falls back to `.`, creates `one-thing-functions.config.mjs` if missing, and adds/updates `scripts.lint:functions` in `package.json` when present.
+`init` is safe to use in both new and old projects. It detects common roots (`src`, `lib`, `app`, `scripts`, `packages`, etc.), falls back to `.`, creates `one-thing-functions.config.mjs` if missing, and adds/updates advisory `scripts.lint:functions` plus strict `scripts.lint:functions:strict` in `package.json` when present.
 
 If `npx one-thing-functions` is unavailable, still follow rules manually and add checker later.
 
@@ -163,8 +165,8 @@ If `npx one-thing-functions` is unavailable, still follow rules manually and add
 
 ## When refactoring existing code
 
-1. Run `npx one-thing-functions init --roots=<roots>` to install checker config and script.
-2. Run `npm run lint:functions` to get baseline violations.
+1. Run `npx one-thing-functions init --roots=<roots>` to install checker config and scripts.
+2. Run `npm run lint:functions` to get advisory baseline violations.
 3. Audit violations before editing.
 4. Refactor one slice at a time.
 5. Preserve behavior; run tests after each slice.

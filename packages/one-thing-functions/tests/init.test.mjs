@@ -24,7 +24,8 @@ test("init creates config and lint script", () => {
     const pkg = JSON.parse(readFileSync("package.json", "utf8"));
     assert.equal(changes.length, 2);
     assert.match(config, /roots: \["src","scripts"\]/);
-    assert.equal(pkg.scripts["lint:functions"], "one-thing-functions check src scripts");
+    assert.equal(pkg.scripts["lint:functions"], "one-thing-functions check src scripts --advisory");
+    assert.equal(pkg.scripts["lint:functions:strict"], "one-thing-functions check src scripts");
   });
 });
 
@@ -35,7 +36,8 @@ test("init detects existing common roots", () => {
     writeFileSync("package.json", JSON.stringify({ scripts: {} }));
     initProject();
     const pkg = JSON.parse(readFileSync("package.json", "utf8"));
-    assert.equal(pkg.scripts["lint:functions"], "one-thing-functions check lib scripts");
+    assert.equal(pkg.scripts["lint:functions"], "one-thing-functions check lib scripts --advisory");
+    assert.equal(pkg.scripts["lint:functions:strict"], "one-thing-functions check lib scripts");
   });
 });
 
@@ -44,6 +46,7 @@ test("init falls back to current directory", () => {
     writeFileSync("package.json", JSON.stringify({ scripts: {} }));
     initProject();
     const pkg = JSON.parse(readFileSync("package.json", "utf8"));
-    assert.equal(pkg.scripts["lint:functions"], "one-thing-functions check .");
+    assert.equal(pkg.scripts["lint:functions"], "one-thing-functions check . --advisory");
+    assert.equal(pkg.scripts["lint:functions:strict"], "one-thing-functions check .");
   });
 });

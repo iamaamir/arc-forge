@@ -26,8 +26,10 @@ function createConfig(roots) {
 
 function updatePackageJson(roots) {
   const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+  const target = roots.join(" ");
   pkg.scripts = pkg.scripts || {};
-  pkg.scripts["lint:functions"] = `one-thing-functions check ${roots.join(" ")}`;
+  pkg.scripts["lint:functions"] = `one-thing-functions check ${target} --advisory`;
+  pkg.scripts["lint:functions:strict"] = `one-thing-functions check ${target}`;
   writeFileSync("package.json", `${JSON.stringify(pkg, null, 2)}\n`);
-  return ["updated package.json scripts.lint:functions"];
+  return ["updated package.json function lint scripts"];
 }
