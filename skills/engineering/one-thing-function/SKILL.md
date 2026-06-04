@@ -130,7 +130,7 @@ For custom roots:
 npx one-thing-functions init --roots=src,scripts
 ```
 
-`init` is safe to use in both new and old projects. It creates `one-thing-functions.config.mjs` if missing and adds/updates `scripts.lint:functions` in `package.json` when present.
+`init` is safe to use in both new and old projects. It detects common roots (`src`, `lib`, `app`, `scripts`, `packages`, etc.), falls back to `.`, creates `one-thing-functions.config.mjs` if missing, and adds/updates `scripts.lint:functions` in `package.json` when present.
 
 If `npx one-thing-functions` is unavailable, still follow rules manually and add checker later.
 

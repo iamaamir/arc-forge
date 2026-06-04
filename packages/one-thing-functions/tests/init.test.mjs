@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -25,5 +25,25 @@ test("init creates config and lint script", () => {
     assert.equal(changes.length, 2);
     assert.match(config, /roots: \["src","scripts"\]/);
     assert.equal(pkg.scripts["lint:functions"], "one-thing-functions check src scripts");
+  });
+});
+
+test("init detects existing common roots", () => {
+  inTempProject(() => {
+    mkdirSync("lib");
+    mkdirSync("scripts");
+    writeFileSync("package.json", JSON.stringify({ scripts: {} }));
+    initProject();
+    const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+    assert.equal(pkg.scripts["lint:functions"], "one-thing-functions check lib scripts");
+  });
+});
+
+test("init falls back to current directory", () => {
+  inTempProject(() => {
+    writeFileSync("package.json", JSON.stringify({ scripts: {} }));
+    initProject();
+    const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+    assert.equal(pkg.scripts["lint:functions"], "one-thing-functions check .");
   });
 });

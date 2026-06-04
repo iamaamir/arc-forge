@@ -1,9 +1,10 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const configFile = "one-thing-functions.config.mjs";
+const commonRoots = ["src", "lib", "app", "pages", "components", "scripts", "packages", "background", "content", "popup", "providers"];
 
 export function initProject(options = {}) {
-  const roots = options.roots || ["src"];
+  const roots = options.roots || detectRoots();
   const changes = [];
   if (!existsSync(configFile)) {
     writeFileSync(configFile, createConfig(roots));
@@ -11,6 +12,12 @@ export function initProject(options = {}) {
   }
   if (existsSync("package.json")) changes.push(...updatePackageJson(roots));
   return changes;
+}
+
+function detectRoots() {
+  const roots = commonRoots.filter((root) => existsSync(root));
+  if (roots.length > 0) return roots;
+  return ["."];
 }
 
 function createConfig(roots) {

@@ -19,6 +19,8 @@ npm install -D one-thing-functions
 npm run lint:functions
 ```
 
+`init` detects common roots (`src`, `lib`, `app`, `scripts`, `packages`, etc.). If none exist, it falls back to `.`.
+
 Custom roots:
 
 ```sh
