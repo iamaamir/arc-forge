@@ -52,12 +52,17 @@ Publish everything in one go:
 Example release:
 
 ```sh
-npm version patch --workspace one-thing-functions
-git add package-lock.json packages/one-thing-functions/package.json
-git commit -m "chore(release): bump one-thing-functions"
-git tag v0.1.1
-git push && git push --tags
+npm run publish
 ```
+
+Other release types:
+
+```sh
+npm run publish -- minor
+npm run publish -- major
+```
+
+The release script requires a clean working tree, runs tests, bumps `one-thing-functions`, commits the version change, creates a `v*` tag, pushes the current branch, and pushes the tag.
 
 The workflow publishes all npm workspace packages to npmjs.com using npm Trusted Publishing (OIDC), so no npm token secret is needed. Skills are installed directly from this GitHub repository via `npx skills add`, so adding future skills under `skills/` needs no publish-infra change.
 

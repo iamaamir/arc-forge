@@ -9,7 +9,12 @@
   ],
   "scripts": {
     "test": "node --test packages/one-thing-functions/tests/*.test.mjs",
-    "check:skills": "npx skills add . --list"
+    "check:skills": "npx skills add . --list",
+    "release": "node scripts/release.mjs",
+    "release:patch": "node scripts/release.mjs patch",
+    "release:minor": "node scripts/release.mjs minor",
+    "release:major": "node scripts/release.mjs major",
+    "publish": "node scripts/release.mjs"
   },
   "keywords": [
     "agent-skills",
