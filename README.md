@@ -46,12 +46,22 @@ node packages/one-thing-functions/bin/one-thing-functions.mjs check src
 
 Publish everything in one go:
 
-1. Push changes to GitHub.
-2. Create a GitHub release, or run the `Publish npm packages` workflow manually.
+1. Bump package version.
+2. Push a `v*` tag, create a GitHub release, or run the `Publish npm packages` workflow manually.
+
+Example release:
+
+```sh
+npm version patch --workspace one-thing-functions
+git add package-lock.json packages/one-thing-functions/package.json
+git commit -m "chore(release): bump one-thing-functions"
+git tag v0.1.1
+git push && git push --tags
+```
 
 The workflow publishes all npm workspace packages to npmjs.com using npm Trusted Publishing (OIDC), so no npm token secret is needed. Skills are installed directly from this GitHub repository via `npx skills add`, so adding future skills under `skills/` needs no publish-infra change.
 
-Before first publish, configure the package on npmjs.com:
+Trusted publishing setup on npmjs.com:
 
 - Package: `one-thing-functions`
 - Trusted publisher: GitHub Actions
