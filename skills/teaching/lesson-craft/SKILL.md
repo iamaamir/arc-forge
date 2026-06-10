@@ -85,6 +85,21 @@ At least one exercise per lesson must involve running real software (Docker, CLI
 
 Every claim needs a link to the source (official docs, academic paper, trusted article). A lesson with zero citations cannot be verified by the learner. If you don't know a source, mark it with a note: "This is my understanding — verify against the official documentation at {URL}."
 
+### Style Consistency
+
+After generating a lesson that is NOT the first one, read the previous lesson and compare:
+
+| Dimension | Check |
+|---|---|
+| **Tone** | Formal or conversational? Direct or exploratory? Does the new lesson sound like the same teacher? |
+| **Depth** | Similar paragraph length per concept? Similar code-to-prose ratio? Assumes the same prior knowledge? |
+| **Demo style** | SVG-only or full Canvas? Simple button or multi-scenario sandbox with presets? |
+| **Knowledge checks** | Scenario-based or recall? How many options? Same level of difficulty? |
+| **Vocabulary** | Uses glossary terms consistently? Same technical level? |
+| **Citations** | Both have external references? Similar density? |
+
+If a learner would notice a different teacher wrote this, revise until the match is close. The first lesson sets the baseline; every subsequent lesson self-corrects toward it.
+
 ## Workspace Structure
 
 ```
@@ -277,6 +292,7 @@ Interview the learner. Write `MISSION.md`. What do they want to build/understand
    - `prefers-reduced-motion` respected
    - `node --test tests/` — all tests pass
    - Full accessibility checklist from `references/accessibility-guide.md`
+   - **Style consistency** (if not lesson 1): read the previous lesson — would a learner notice a different teacher wrote this?
 10. Add external citations for key claims (at least one link to official docs)
 11. Tell the learner how to open the file
 
@@ -316,7 +332,7 @@ The learner may return with a different agent or model. The workspace is the can
 
 5. **Document the handoff.** In NOTES.md, record: which agent/model is taking over, what changed in teaching approach (if anything), and any model-specific quirks that future agents should know.
 
-6. **Continue from where it left off.** Generate the next lesson in sequence. The previous agent's last lesson's challenge question tells you what the learner is expecting next.
+6. **Continue from where it left off.** Generate the next lesson in sequence. The previous agent's last lesson's challenge question tells you what the learner is expecting next. After writing the new lesson, run the Style Consistency check against the previous one before presenting it.
 
 ### Batch Generation
 
