@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Example: What this lesson covers in one sentence.">
+  <title>NNNN: Lesson Title</title>
+  <link rel="stylesheet" href="../assets/lesson.css">
+  <script defer src="../assets/lesson-components.js"></script>
+</head>
+<body>
+  <main>
+    <lesson-header>
+      <h1>Lesson Title</h1>
+      <p>Promise: what the learner will walk away with.</p>
+    </lesson-header>
+
+    <!-- ── Concept ──────────────────────────────────── -->
+    <section aria-labelledby="concept">
+      <h2 id="concept">Concept</h2>
+      <p>Core idea. Use <strong>bold</strong> for key terms, <code>inline code</code> for APIs.</p>
+    </section>
+
+    <!-- ── Visual Demo (SVG + Canvas) ───────────────── -->
+    <section aria-labelledby="demo-visual">
+      <h2 id="demo-visual">Interactive Demo: Visual</h2>
+
+      <div class="demo-panels">
+        <figure class="demo-panel demo-svg" role="img" aria-label="Two-node interaction diagram">
+          <svg id="demo-svg" viewBox="0 0 340 200" aria-hidden="true">
+            <circle id="node-a" cx="60" cy="100" r="24" />
+            <circle id="node-b" cx="280" cy="100" r="24" />
+            <path id="arrow" d="M84 100 L256 100" opacity="0" />
+            <text x="60" y="108" text-anchor="middle">A</text>
+            <text x="280" y="108" text-anchor="middle">B</text>
+          </svg>
+          <button id="run-btn">Run</button>
+          <button id="reset-btn">Reset</button>
+        </figure>
+
+        <figure class="demo-panel demo-canvas">
+          <canvas id="demo-canvas" width="340" height="200" aria-label="Same interaction animated on Canvas"></canvas>
+        </figure>
+      </div>
+
+      <figcaption class="event-log" id="log-visual" aria-live="polite">
+        Click "Run" to see the interaction.
+      </figcaption>
+    </section>
+
+    <!-- ── Interactive Sandbox / REPL ───────────────── -->
+    <section aria-labelledby="demo-sandbox">
+      <h2 id="demo-sandbox">Interactive Demo: Sandbox</h2>
+
+      <div class="sandbox">
+        <div class="demo-panels">
+          <section class="demo-panel" aria-label="State">
+            <h3>Current State</h3>
+            <pre id="sandbox-state" style="min-height:3em;">Waiting for input...</pre>
+          </section>
+          <section class="demo-panel" aria-label="Log">
+            <h3>Event Log</h3>
+            <div id="log-sandbox" aria-live="polite"></div>
+          </section>
+        </div>
+        <form class="sandbox-input" id="sandbox-form">
+          <label for="sandbox-cmd">Command:</label>
+          <input type="text" id="sandbox-cmd" placeholder="Type a command...">
+          <button type="submit">Run</button>
+          <button type="button" id="sandbox-reset">Reset</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ── Check Your Understanding ─────────────────── -->
+    <section aria-labelledby="check">
+      <h2 id="check">Check Your Understanding</h2>
+      <knowledge-check correct="b"
+        correct-feedback="Correct. The explanation..."
+        incorrect-feedback="Not quite. Remember that...">
+        <form>
+          <fieldset>
+            <legend>What is the key insight?</legend>
+            <label><input type="radio" name="q1" value="a"> Option A</label>
+            <label><input type="radio" name="q1" value="b"> Option B</label>
+            <label><input type="radio" name="q1" value="c"> Option C</label>
+          </fieldset>
+        </form>
+      </knowledge-check>
+    </section>
+
+    <lesson-nav home="../index.html" previous="NNNN-prev.html" next="NNNN-next.html"></lesson-nav>
+  </main>
+
+  <script defer>
+    // ── Visual Demo (SVG + Canvas) ──────────────────
+    const logVisual = document.getElementById('log-visual');
+    const svgArrow = document.getElementById('arrow');
+    const canvas = document.getElementById('demo-canvas');
+    const ctx = canvas.getContext('2d');
+
+    async function animate() {
+      svgArrow.style.opacity = '1';
+      logVisual.textContent = 'Message sent from A to B.';
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.font = '14px system-ui';
+      ctx.textAlign = 'center';
+      ctx.beginPath(); ctx.arc(60, 100, 24, 0, Math.PI * 2);
+      ctx.fillStyle = '#e0e7ff'; ctx.fill();
+      ctx.fillStyle = '#1e293b'; ctx.fillText('A', 60, 104);
+      ctx.beginPath(); ctx.arc(280, 100, 24, 0, Math.PI * 2);
+      ctx.fillStyle = '#e0e7ff'; ctx.fill();
+      ctx.fillStyle = '#1e293b'; ctx.fillText('B', 280, 104);
+
+      for (let t = 0; t <= 1; t += 0.05) {
+        const x = 84 + (256 - 84) * t;
+        ctx.beginPath(); ctx.arc(x, 100, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#6366f1'; ctx.fill();
+        await new Promise(r => requestAnimationFrame(r));
+      }
+    }
+
+    function resetVisual() {
+      svgArrow.style.opacity = '0';
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      logVisual.textContent = 'Reset. Click Run to start.';
+    }
+
+    document.getElementById('run-btn').addEventListener('click', animate);
+    document.getElementById('reset-btn').addEventListener('click', resetVisual);
+
+    // ── Sandbox / REPL ──────────────────────────────
+    const sandboxState = document.getElementById('sandbox-state');
+    const sandboxLog = document.getElementById('log-sandbox');
+
+    document.getElementById('sandbox-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = document.getElementById('sandbox-cmd');
+      const cmd = input.value.trim();
+      if (!cmd) return;
+      sandboxLog.textContent = `Ran: ${cmd}`;
+      sandboxState.textContent = `Last command: ${cmd}`;
+      input.value = '';
+    });
+
+    document.getElementById('sandbox-reset').addEventListener('click', () => {
+      sandboxState.textContent = 'Waiting for input...';
+      sandboxLog.textContent = '';
+    });
+  </script>
+</body>
+</html>
