@@ -25,6 +25,7 @@ npx skills add iamaamir/arc-forge --list
 ## Skills
 
 - [`one-thing-function`](skills/engineering/one-thing-function/SKILL.md) — strict function-design rules for new or existing codebases.
+- [`seeded-color-theme`](skills/design/seeded-color-theme/SKILL.md) — CSS-only palette generation from one seed color without tint-ladder slop.
 
 ## Tools
 
@@ -100,6 +101,9 @@ npm run check:skills
 ```txt
 arc-forge/
   skills/
+    design/
+      seeded-color-theme/
+        SKILL.md
     engineering/
       one-thing-function/
         SKILL.md
