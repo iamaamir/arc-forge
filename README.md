@@ -26,6 +26,7 @@ npx skills add iamaamir/arc-forge --list
 
 - [`one-thing-function`](skills/engineering/one-thing-function/SKILL.md) — strict function-design rules for new or existing codebases.
 - [`seeded-color-theme`](skills/design/seeded-color-theme/SKILL.md) — CSS-only palette generation from one seed color without tint-ladder slop.
+- [`swarm-sofa`](skills/engineering/swarm-sofa/SKILL.md) — turn multi-agent exploration into tested reusable SOFA knowledge.
 
 ## Tools
 
@@ -106,6 +107,8 @@ arc-forge/
         SKILL.md
     engineering/
       one-thing-function/
+        SKILL.md
+      swarm-sofa/
         SKILL.md
   packages/
     one-thing-functions/
