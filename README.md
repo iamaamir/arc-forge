@@ -24,6 +24,7 @@ npx skills add iamaamir/arc-forge --list
 
 ## Skills
 
+- [`adaptive-ai-team-bootstrap`](skills/engineering/adaptive-ai-team-bootstrap/SKILL.md) — drop an adaptive AI product-engineering team into any project with induction, Memory.md, roles, specialist teams, governance, and verification loops.
 - [`one-thing-function`](skills/engineering/one-thing-function/SKILL.md) — strict function-design rules for new or existing codebases.
 - [`seeded-color-theme`](skills/design/seeded-color-theme/SKILL.md) — CSS-only palette generation from one seed color without tint-ladder slop.
 - [`swarm-sofa`](skills/engineering/swarm-sofa/SKILL.md) — turn multi-agent exploration into tested reusable SOFA knowledge.
@@ -31,6 +32,18 @@ npx skills add iamaamir/arc-forge --list
 ## Tools
 
 - [`one-thing-functions`](packages/one-thing-functions) — checker CLI for one-thing function rules.
+
+Validate an installed adaptive AI-team footprint:
+
+```sh
+node .agents/skills/adaptive-ai-team-bootstrap/scripts/check-ai-team.mjs --project .
+```
+
+After implementation work, require operating trace artifacts too:
+
+```sh
+node .agents/skills/adaptive-ai-team-bootstrap/scripts/check-ai-team.mjs --project . --require-runtime-trace
+```
 
 Run checker after package publish:
 
@@ -106,6 +119,11 @@ arc-forge/
       seeded-color-theme/
         SKILL.md
     engineering/
+      adaptive-ai-team-bootstrap/
+        SKILL.md
+        references/
+        templates/
+        scripts/
       one-thing-function/
         SKILL.md
       swarm-sofa/
