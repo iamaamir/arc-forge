@@ -4,7 +4,7 @@ Feature: gauntlet check CLI
 
   Scenario: All gates pass on a healthy project
     Given a project with passing tests, full coverage, and a mutation report at threshold
-    When I run "gauntlet check"
+    When I run "gauntlet check" (which runs all gates by default)
     Then the exit code is 0
 
   Scenario: CRAP gate fails on a complex uncovered function
@@ -15,7 +15,7 @@ Feature: gauntlet check CLI
     And stderr suggests raising the threshold or refactoring
 
   Scenario: Mutation gate fails below threshold score
-    Given a Stryker report with mutation score 60
+    Given a Stryker report at reports/mutation/mutation.json with mutation score 60
     And a configured mutation score threshold of 85
     When I run "gauntlet check --mutation"
     Then the exit code is 1
@@ -25,6 +25,7 @@ Feature: gauntlet check CLI
     Given a project whose configured testCommand exits nonzero
     When I run "gauntlet check --spec"
     Then the exit code is 1
+    And stderr shows the failing test output
 
   Scenario: Missing coverage summary is a setup error
     Given a project with no coverage/coverage-summary.json
