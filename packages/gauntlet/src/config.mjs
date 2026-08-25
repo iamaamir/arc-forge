@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import defaultProfile from "../profiles/default.mjs";
+import { SetupError } from "./errors.mjs";
 
 export const defaultConfig = {
   roots: ["src"],
@@ -25,10 +26,12 @@ function readConfigFile() {
   try {
     return JSON.parse(readFileSync(resolved, "utf8"));
   } catch (error) {
-    throw new Error(`invalid gauntlet.config.json: ${error.message}`);
+    throw new SetupError(`invalid gauntlet.config.json: ${error.message}`);
   }
 }
 
 function stripEmpty(options) {
-  return Object.fromEntries(Object.entries(options).filter(([, value]) => value !== undefined));
+  return Object.fromEntries(
+    Object.entries(options).filter(([, value]) => value !== undefined && value !== null),
+  );
 }
