@@ -45,3 +45,15 @@ function outer(x) {
   assert.deepEqual(names, ["inner", "outer"]);
   assert.equal(fns.find((fn) => fn.name === "outer").cc, 2);
 });
+
+test("class methods are named; inner callbacks are not renamed", () => {
+  const source = `
+class Widget {
+  render(x) {
+    return x ? items.map((item) => item.id) : [];
+  }
+}
+`;
+  const result = analyzeSource(source);
+  assert.deepEqual(result.map((fn) => fn.name).sort(), ["(anonymous)", "render"]);
+});

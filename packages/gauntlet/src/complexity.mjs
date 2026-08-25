@@ -37,23 +37,23 @@ function isFunctionNode(node) {
 
 function buildParentNames(ast) {
   const map = new Map();
-  const visit = (node, assignedName) => {
+  const visit = (node) => {
     if (!node || typeof node.type !== "string") return;
-    if ((node.type === "FunctionExpression" || node.type === "ArrowFunctionExpression") && assignedName) {
-      map.set(node, assignedName);
+    if (node.type === "VariableDeclarator" && node.id.type === "Identifier" && isFunctionNode(node.init)) {
+      map.set(node.init, node.id.name);
     }
-    let childAssigned = assignedName;
-    if (node.type === "VariableDeclarator" && node.id.type === "Identifier") childAssigned = node.id.name;
-    if (node.type === "Property" || node.type === "MethodDefinition") {
-      childAssigned = node.key?.name ?? node.key?.value;
+    if ((node.type === "Property" || node.type === "MethodDefinition") && isFunctionNode(node.value)) {
+      map.set(node.value, node.key?.name ?? node.key?.value);
     }
-    if (node.type === "AssignmentExpression" && node.left.type === "Identifier") childAssigned = node.left.name;
+    if (node.type === "AssignmentExpression" && node.left.type === "Identifier" && isFunctionNode(node.right)) {
+      map.set(node.right, node.left.name);
+    }
     for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach((item) => visit(item, childAssigned));
-      else if (value && typeof value.type === "string") visit(value, childAssigned);
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value.type === "string") visit(value);
     }
   };
-  visit(ast, null);
+  visit(ast);
   return map;
 }
 
