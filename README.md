@@ -33,7 +33,7 @@ npx skills add iamaamir/arc-forge --list
 ## Tools
 
 - [`one-thing-functions`](packages/one-thing-functions) — checker CLI for one-thing function rules.
-- [`gauntlet`](packages/gauntlet) — `gauntlet check` CLI gating projects on CRAP scores and mutation-test scores.
+- [`forge-gate`](packages/forge-gate) — `forge-gate check` CLI gating projects on CRAP scores and mutation-test scores.
 
 Validate an installed adaptive AI-team footprint:
 
@@ -141,7 +141,7 @@ arc-forge/
       profiles/
       examples/
       tests/
-    gauntlet/
+    forge-gate/
       bin/
       src/
       profiles/

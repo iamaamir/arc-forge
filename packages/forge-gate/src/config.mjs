@@ -21,12 +21,12 @@ export async function loadConfigAsync(options = {}) {
 }
 
 function readConfigFile() {
-  const resolved = path.resolve("gauntlet.config.json");
+  const resolved = path.resolve("forge-gate.config.json");
   if (!existsSync(resolved)) return {};
   try {
     return JSON.parse(readFileSync(resolved, "utf8"));
   } catch (error) {
-    throw new SetupError(`invalid gauntlet.config.json: ${error.message}`);
+    throw new SetupError(`invalid forge-gate.config.json: ${error.message}`);
   }
 }
 

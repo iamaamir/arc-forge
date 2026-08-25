@@ -9,14 +9,14 @@ Add a deterministic quality pipeline for AI coding agents to Arc Forge, based on
 Two deliverables:
 
 - `skills/engineering/gauntlet/SKILL.md` — the process skill that runs five adaptive stages.
-- `packages/gauntlet/` — an npm workspace CLI (`gauntlet check`) that provides the deterministic gates.
+- `packages/forge-gate/` — an npm workspace CLI (`forge-gate check`) that provides the deterministic gates.
 
 ## Goals
 
 - Replace prompt-based steering with deterministic gates: every stage ends in a command that fails loudly.
 - Keep each stage in a clean context (subagent when available) to avoid context dilution.
 - Ship working JS/TS gates out of the box while letting agents adapt the same stage logic to any ecosystem.
-- Dogfood: the `packages/gauntlet` package is built by running its own pipeline stages (spec first, then code, then clean, then mutation-harden).
+- Dogfood: the `packages/forge-gate` package is built by running its own pipeline stages (spec first, then code, then clean, then mutation-harden).
 
 ## Non-Goals
 
@@ -30,12 +30,12 @@ Two deliverables:
 | # | Stage | Role | Gate |
 |---|-------|------|------|
 | 1 | Specify | Convert requirements into Gherkin acceptance tests plus a QA procedure document | User approves the spec files |
-| 2 | Code | Implement code and unit tests against the Gherkin specs; messiness allowed | All tests pass (`gauntlet check --spec`) |
-| 3 | Clean | Refactor for complexity | CRAP scores within threshold (`gauntlet check --crap`) |
-| 4 | Harden | Mutation-test until tests kill mutants | Mutation score at or above threshold (`gauntlet check --mutation`) |
-| 5 | QA | Run system-level tests defined by the stage-1 QA procedure | QA suite passes (`gauntlet check --qa`) |
+| 2 | Code | Implement code and unit tests against the Gherkin specs; messiness allowed | All tests pass (`forge-gate check --spec`) |
+| 3 | Clean | Refactor for complexity | CRAP scores within threshold (`forge-gate check --crap`) |
+| 4 | Harden | Mutation-test until tests kill mutants | Mutation score at or above threshold (`forge-gate check --mutation`) |
+| 5 | QA | Run system-level tests defined by the stage-1 QA procedure | QA suite passes (`forge-gate check --qa`) |
 
-`gauntlet check` with no flags runs all deterministic gates (2–5) in order and stops at the first failure.
+`forge-gate check` with no flags runs all deterministic gates (2–5) in order and stops at the first failure.
 
 ### Adaptive Execution
 
@@ -47,18 +47,18 @@ Two deliverables:
 
 The skill instructs the agent to discover ecosystem-standard equivalents (for example `mutmut`, `cargo-mutants`, `go-mutesting`) and run the same gate logic via configuration that points at those commands. Arc Forge ships no non-JS tooling itself.
 
-## Package CLI: `packages/gauntlet`
+## Package CLI: `packages/forge-gate`
 
 Node CLI, published as an npm workspace package following the `one-thing-functions` pattern (bin entry, src/, tests/, profiles/).
 
 ### Commands
 
 ```sh
-gauntlet check            # run all gates
-gauntlet check --crap     # CRAP gate only
-gauntlet check --mutation # mutation gate only
-gauntlet check --spec     # unit/acceptance test gate only
-gauntlet check --qa       # QA suite gate only
+forge-gate check            # run all gates
+forge-gate check --crap     # CRAP gate only
+forge-gate check --mutation # mutation gate only
+forge-gate check --spec     # unit/acceptance test gate only
+forge-gate check --qa       # QA suite gate only
 ```
 
 ### Gates
@@ -70,7 +70,7 @@ gauntlet check --qa       # QA suite gate only
 
 ### Configuration
 
-Defaults ship in a profile; projects override via `gauntlet.config.json` or CLI flags:
+Defaults ship in a profile; projects override via `forge-gate.config.json` or CLI flags:
 
 - `crapThreshold` (default 8)
 - `mutationScoreThreshold` (default 85)
@@ -98,7 +98,7 @@ Each stage reference contains only what that role needs: inputs, procedure, gate
 
 ## Dogfooding Constraint
 
-The implementation of `packages/gauntlet` must itself pass through the gauntlet:
+The implementation of `packages/forge-gate` must itself pass through the gauntlet:
 
 1. Write Gherkin acceptance specs for the CLI before implementing commands.
 2. Implement to make those specs pass (stage-2 style, mess allowed).
@@ -110,12 +110,12 @@ The tool validates itself before it validates anyone else.
 
 ## Error Handling
 
-- Every gate prints a failure reason and the exact remediation loop ("fix and re-run `gauntlet check --crap`").
+- Every gate prints a failure reason and the exact remediation loop ("fix and re-run `forge-gate check --crap`").
 - Missing prerequisites (no coverage data, no Stryker config) produce setup instructions, not stack traces.
 - Exit codes: 0 pass, 1 gate failure, 2 configuration/setup error.
 
 ## Testing
 
 - Package unit tests (`node --test`, matching repo conventions) for CRAP computation, score parsing, profile loading, CLI exit codes.
-- Fixture projects under `packages/gauntlet/tests/fixtures/` covering: passing project, high-CRAP project, low-mutation-score project.
+- Fixture projects under `packages/forge-gate/tests/fixtures/` covering: passing project, high-CRAP project, low-mutation-score project.
 - Repo-level: update README skills/tools lists; `npm run check:skills` must pass; `npm test` must pass.

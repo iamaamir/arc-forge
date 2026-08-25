@@ -51,7 +51,7 @@ test("missing qaCommand is a setup error with actionable message", async () => {
   assert.equal(result.status, 2);
   assert.equal(
     result.message,
-    'qaCommand is not set. Add it to gauntlet.config.json, e.g. "qaCommand": "npm test".',
+    'qaCommand is not set. Add it to forge-gate.config.json, e.g. "qaCommand": "npm test".',
   );
 });
 

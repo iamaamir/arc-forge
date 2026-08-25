@@ -47,10 +47,10 @@ test("null and undefined options fall back to defaults", async (t) => {
   assert.deepEqual(config.extensions, [".js", ".mjs", ".cjs", ".jsx"]);
 });
 
-test("loadConfigAsync reads gauntlet.config.json overrides", async (t) => {
+test("loadConfigAsync reads forge-gate.config.json overrides", async (t) => {
   const dir = withTempDir(t);
   writeFileSync(
-    path.join(dir, "gauntlet.config.json"),
+    path.join(dir, "forge-gate.config.json"),
     JSON.stringify({ crapThreshold: 30, testCommand: "npm t" }),
   );
   const config = await loadConfigAsync({});
@@ -61,19 +61,19 @@ test("loadConfigAsync reads gauntlet.config.json overrides", async (t) => {
 
 test("options override config file values", async (t) => {
   const dir = withTempDir(t);
-  writeFileSync(path.join(dir, "gauntlet.config.json"), JSON.stringify({ crapThreshold: 30 }));
+  writeFileSync(path.join(dir, "forge-gate.config.json"), JSON.stringify({ crapThreshold: 30 }));
   const config = await loadConfigAsync({ crapThreshold: 12 });
   assert.equal(config.crapThreshold, 12);
 });
 
 test("malformed config json raises a descriptive SetupError", async (t) => {
   const dir = withTempDir(t);
-  writeFileSync(path.join(dir, "gauntlet.config.json"), "{oops");
+  writeFileSync(path.join(dir, "forge-gate.config.json"), "{oops");
   await assert.rejects(
     () => loadConfigAsync({}),
     (error) => {
       assert.ok(error instanceof SetupError);
-      assert.match(error.message, /^invalid gauntlet\.config\.json: /);
+      assert.match(error.message, /^invalid forge-gate\.config\.json: /);
       return true;
     },
   );

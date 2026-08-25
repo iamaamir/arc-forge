@@ -6,6 +6,6 @@ Set up StrykerJS (`npx stryker init`, configure `"reports": ["json"]`, output to
 
 Default threshold is mutation score ≥ 85.
 
-Gate: `npx gauntlet check --mutation`. Loop until exit code 0. Update `gauntlet-state.md`.
+Gate: `npx forge-gate check --mutation`. Loop until exit code 0. Update `gauntlet-state.md`.
 
-Non-JS ecosystems: use mutmut / cargo-mutants / go-mutesting and gate manually on their scores; record the command in `gauntlet.config.json`.
+Non-JS ecosystems: use mutmut / cargo-mutants / go-mutesting and gate manually on their scores; record the command in `forge-gate.config.json`.

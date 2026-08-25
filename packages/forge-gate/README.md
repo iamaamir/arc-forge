@@ -1,6 +1,6 @@
-# gauntlet
+# forge-gate
 
-Deterministic quality gates for AI coding agents. Agents treat long instructions as guidelines; they cannot ignore an exit code. `gauntlet check` runs gates that either pass or fail loudly, so agents loop until the code actually passes.
+Deterministic quality gates for AI coding agents. Agents treat long instructions as guidelines; they cannot ignore an exit code. `forge-gate check` runs gates that either pass or fail loudly, so agents loop until the code actually passes.
 
 Gates:
 
@@ -14,9 +14,9 @@ Gates:
 Exit codes: `0` pass, `1` gate failure, `2` setup/configuration problem.
 
 ```sh
-npx gauntlet check            # run all four gates
-npx gauntlet check --crap     # run one gate
-npx gauntlet check --crap=12  # override a threshold for one run
+npx forge-gate check            # run all four gates
+npx forge-gate check --crap     # run one gate
+npx forge-gate check --crap=12  # override a threshold for one run
 ```
 
 ---
@@ -37,7 +37,7 @@ npm install -D c8
 
 Any runner works (`jest`, `vitest`, …) as long as c8 (or another Istanbul-compatible tool) produces `coverage/coverage-summary.json`.
 
-**Step 2 — declare your commands.** Create `gauntlet.config.json` in the project root:
+**Step 2 — declare your commands.** Create `forge-gate.config.json` in the project root:
 
 ```json
 {
@@ -51,9 +51,9 @@ Only set what you use: `--spec` needs `testCommand`, `--qa` needs `qaCommand`.
 **Step 3 — run the gates one at a time first**, fixing as you go, then together:
 
 ```sh
-npx gauntlet check --crap       # refactor flagged functions until exit 0
-npx gauntlet check --mutation   # see step 4
-npx gauntlet check              # everything
+npx forge-gate check --crap       # refactor flagged functions until exit 0
+npx forge-gate check --mutation   # see step 4
+npx forge-gate check              # everything
 ```
 
 Expected output on failure is actionable by design:
@@ -81,7 +81,7 @@ In `stryker.config.json`:
 }
 ```
 
-Run `npx stryker run`, which writes `reports/mutation/mutation.json`. Then loop: for each surviving mutant, ask *why did no test catch this behavior change?* and add an assertion that kills it — until `gauntlet check --mutation` exits 0.
+Run `npx stryker run`, which writes `reports/mutation/mutation.json`. Then loop: for each surviving mutant, ask *why did no test catch this behavior change?* and add an assertion that kills it — until `forge-gate check --mutation` exits 0.
 
 **Adopting incrementally:** legacy code will not pass CRAP ≤ 8 on day one. Start with a raised threshold (`"crapThreshold": 30`) and ratchet it down over time. Raising thresholds should be a deliberate decision, not a reflex.
 
@@ -97,8 +97,8 @@ Then tell your agent **run the gauntlet** and describe the feature. The pipeline
 
 1. **Specify** — agent writes Gherkin acceptance tests (`features/*.feature`) plus a QA procedure before any implementation code exists. You approve them.
 2. **Code** — agent implements against the specs; messiness allowed.
-3. **Clean** — agent refactors until `gauntlet check --crap` exits 0.
-4. **Harden** — agent kills surviving mutants until `gauntlet check --mutation` exits 0.
+3. **Clean** — agent refactors until `forge-gate check --crap` exits 0.
+4. **Harden** — agent kills surviving mutants until `forge-gate check --mutation` exits 0.
 5. **QA** — system-level verification via the stage-1 procedure.
 
 Scaffold the config early so gates are runnable from the first commit:
@@ -136,7 +136,7 @@ Never skip a gate because tooling is inconvenient — pick an equivalent tool in
 
 ## Configuration reference
 
-`gauntlet.config.json` (all keys optional):
+`forge-gate.config.json` (all keys optional):
 
 ```json
 {

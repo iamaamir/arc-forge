@@ -27,9 +27,9 @@ async function runCheck() {
     process.exitCode = result.status;
   } catch (error) {
     if (error instanceof SetupError) {
-      console.error(`gauntlet: ${error.message}`);
+      console.error(`forge-gate: ${error.message}`);
     } else {
-      console.error(`gauntlet crashed: ${error.stack}`);
+      console.error(`forge-gate crashed: ${error.stack}`);
     }
     process.exitCode = 2;
   }
@@ -39,7 +39,7 @@ function validateNumericFlags() {
   for (const name of ["--crap", "--mutation"]) {
     const value = getOptionValue(name);
     if (value !== undefined && !Number.isFinite(Number(value))) {
-      console.error(`gauntlet: ${name} expects a number, got "${value}"`);
+      console.error(`forge-gate: ${name} expects a number, got "${value}"`);
       process.exitCode = 2;
       return false;
     }
@@ -57,10 +57,10 @@ function getOptionValue(name) {
 }
 
 function printHelp() {
-  console.log(`gauntlet
+  console.log(`forge-gate
 
 Usage:
-  gauntlet check [--spec] [--crap] [--mutation] [--qa]
+  forge-gate check [--spec] [--crap] [--mutation] [--qa]
                  [--crap=N] [--mutation=N] [--roots=src,lib]
 
 Runs deterministic quality gates. With no gate flags, runs all gates.

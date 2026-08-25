@@ -8,7 +8,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
-const cli = path.resolve(testDir, "../bin/gauntlet.mjs");
+const cli = path.resolve(testDir, "../bin/forge-gate.mjs");
 
 function makeTempDir(t, prefix) {
   const dir = mkdtempSync(path.join(tmpdir(), prefix));

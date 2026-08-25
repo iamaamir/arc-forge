@@ -6,8 +6,8 @@ node_modules/
 coverage/
 dist/
 reports/
-packages/gauntlet/stryker-tmp/
-packages/gauntlet/.stryker-tmp/
+packages/forge-gate/stryker-tmp/
+packages/forge-gate/.stryker-tmp/
 *.log
 npm-debug.log*
 *.tgz

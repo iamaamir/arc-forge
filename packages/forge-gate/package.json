@@ -1,10 +1,10 @@
 {
-  "name": "gauntlet",
+  "name": "forge-gate",
   "version": "0.1.0",
   "description": "Deterministic quality-gate checker CLI: CRAP analysis and mutation-score gating.",
   "type": "module",
   "bin": {
-    "gauntlet": "bin/gauntlet.mjs"
+    "forge-gate": "bin/forge-gate.mjs"
   },
   "files": [
     "bin",
@@ -26,7 +26,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/iamaamir/arc-forge.git",
-    "directory": "packages/gauntlet"
+    "directory": "packages/forge-gate"
   },
   "engines": {
     "node": ">=20"

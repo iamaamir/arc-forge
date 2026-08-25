@@ -12,10 +12,10 @@ Deterministic gates over prompt steering. Agents treat prose as guidelines but c
 | # | Stage | Output | Gate |
 |---|-------|--------|------|
 | 1 | Specify | Gherkin acceptance tests + QA procedure | user approves |
-| 2 | Code | implementation + unit tests | `gauntlet check --spec` |
-| 3 | Clean | refactored code | `gauntlet check --crap` |
-| 4 | Harden | mutation-hardened tests | `gauntlet check --mutation` |
-| 5 | QA | verified system behavior | `gauntlet check --qa` |
+| 2 | Code | implementation + unit tests | `forge-gate check --spec` |
+| 3 | Clean | refactored code | `forge-gate check --crap` |
+| 4 | Harden | mutation-hardened tests | `forge-gate check --mutation` |
+| 5 | QA | verified system behavior | `forge-gate check --qa` |
 
 Read the reference playbook for the current stage before acting. Only that playbook — keep context small.
 
@@ -29,7 +29,7 @@ At the start, copy `templates/gauntlet-state.md` to `gauntlet-state.md` in the t
 
 ## Non-JS/TS projects
 
-Use the `gauntlet` package for JS/TS (install it or run it via npx). For other ecosystems, keep the same stage structure but substitute ecosystem tools: complexity+coverage analyzers for the CRAP gate, `mutmut`/`cargo-mutants`/etc. for mutation. The `gauntlet` CLI cannot parse non-JS code, so run the substituted commands directly and track them and their results in `gauntlet-state.md`. Never skip a gate because tooling is inconvenient — pick an equivalent tool instead.
+Use the `forge-gate` package for JS/TS (install it or run it via npx). For other ecosystems, keep the same stage structure but substitute ecosystem tools: complexity+coverage analyzers for the CRAP gate, `mutmut`/`cargo-mutants`/etc. for mutation. The `forge-gate` CLI cannot parse non-JS code, so run the substituted commands directly and track them and their results in `gauntlet-state.md`. Never skip a gate because tooling is inconvenient — pick an equivalent tool instead.
 
 ## Rules
 

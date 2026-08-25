@@ -28,7 +28,7 @@ test("runCommand captures exit code and merged output through a shell", () => {
 });
 
 test("runCommand reports success for zero-exit commands", () => {
-  const result = runCommand("echo gauntlet-ok");
+  const result = runCommand("echo forge-gate-ok");
   assert.equal(result.status, 0);
-  assert.equal(result.output, "gauntlet-ok");
+  assert.equal(result.output, "forge-gate-ok");
 });

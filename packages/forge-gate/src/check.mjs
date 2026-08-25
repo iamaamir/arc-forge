@@ -46,7 +46,7 @@ async function runGate(gate, config) {
 
 function runCommandGate(key, config) {
   if (!config[key]) {
-    throw new SetupError(`${key} is not set. Add it to gauntlet.config.json, e.g. "${key}": "npm test".`);
+    throw new SetupError(`${key} is not set. Add it to forge-gate.config.json, e.g. "${key}": "npm test".`);
   }
   const result = runCommand(config[key]);
   return result.status === 0 ? [] : [`${key} failed:\n${result.output}`];
