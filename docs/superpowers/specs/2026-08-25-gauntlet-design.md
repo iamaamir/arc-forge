@@ -64,7 +64,7 @@ forge-gate check --qa       # QA suite gate only
 ### Gates
 
 - **Spec/test gate:** runs the project's test command; fails on any failing test.
-- **CRAP gate:** computes cyclomatic complexity per function from the AST, combines it with code coverage (read from standard `c8`/Istanbul JSON summary output produced by the test run) to produce CRAP scores, fails if any function exceeds the threshold. Output lists worst offenders first with actionable messages ("function `foo` CRAP 14 > 8 — refactor or raise threshold").
+- **CRAP gate:** computes cyclomatic complexity per function from the AST, combines it with per-function statement coverage (read from `coverage/coverage-final.json`) to produce CRAP scores, fails if any function exceeds the threshold. Output lists worst offenders first with actionable messages ("function `foo` CRAP 14 > 8 — refactor or raise threshold").
 - **Mutation gate:** wraps StrykerJS, parses the resulting mutation score, fails below threshold.
 - **QA gate:** runs the QA command declared in config.
 
@@ -75,7 +75,9 @@ Defaults ship in a profile; projects override via `forge-gate.config.json` or CL
 - `crapThreshold` (default 8)
 - `mutationScoreThreshold` (default 85)
 - `testCommand`, `qaCommand`
-- `mutatorCommand` (escape hatch for non-Stryker ecosystems)
+- `commandTimeoutSeconds` (default 300)
+
+<!-- Amended: `mutatorCommand` was dropped — see Amendments (post-review) below. -->
 
 Profile layout mirrors `one-thing-functions/profiles`.
 
@@ -116,6 +118,17 @@ The tool validates itself before it validates anyone else.
 
 ## Testing
 
+<!-- Amended: fixture projects were not shipped; see Amendments (post-review) below. -->
 - Package unit tests (`node --test`, matching repo conventions) for CRAP computation, score parsing, profile loading, CLI exit codes.
 - Fixture projects under `packages/forge-gate/tests/fixtures/` covering: passing project, high-CRAP project, low-mutation-score project.
 - Repo-level: update README skills/tools lists; `npm run check:skills` must pass; `npm test` must pass.
+
+## Amendments (post-review)
+
+Reality as shipped, recorded so nothing is silently missing:
+
+- `mutatorCommand` escape hatch: NOT implemented. Non-Stryker ecosystems gate manually via substituted tools (see package README §3). Removed from scope.
+- `tests/fixtures/` fixture projects: NOT shipped. Inline temp-dir builders are used in tests instead (equivalent coverage, less committed junk).
+- Coverage input changed: CRAP now uses per-function statement coverage from `coverage/coverage-final.json` (was coverage-summary.json).
+- `commandTimeoutSeconds` (default 300): added to configuration and applied to all gated commands.
+- Dependency-rule/UML enforcement from the original inspiration: explicitly deferred as a non-goal for v1.

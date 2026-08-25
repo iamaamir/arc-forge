@@ -83,6 +83,8 @@ In `stryker.config.json`:
 
 Run `npx stryker run`, which writes `reports/mutation/mutation.json`. Then loop: for each surviving mutant, ask *why did no test catch this behavior change?* and add an assertion that kills it — until `forge-gate check --mutation` exits 0.
 
+**Mutation ratchet:** a legacy or untested codebase may not hit score ≥ 85 immediately. Start with a lowered threshold (e.g. `"mutationScoreThreshold": 50`–`70`) and ratchet upward toward 85 — and ideally beyond. Every surviving mutant should be either killed by a test or explicitly documented as an equivalent mutant; never just lower the threshold to make it go away.
+
 **Adopting incrementally:** legacy code will not pass CRAP ≤ 8 on day one. Start with a raised threshold (`"crapThreshold": 30`) and ratchet it down over time. Raising thresholds should be a deliberate decision, not a reflex.
 
 ## 2. Starting a project from scratch
@@ -154,6 +156,8 @@ Never skip a gate because tooling is inconvenient — pick an equivalent tool in
 ```
 
 CLI flags override config values for a single run: `--crap=N`, `--mutation=N`, `--roots=src,lib`.
+
+**`SwitchCase` complexity semantics:** cyclomatic complexity counts each `case` clause *and* each `default` clause as +1, on top of the function's base complexity of 1. A three-way switch with a default therefore scores 5. This is consistent with how the CRAP gate is tuned against this tool.
 
 ## Philosophy
 
