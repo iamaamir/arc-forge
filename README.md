@@ -25,6 +25,7 @@ npx skills add iamaamir/arc-forge --list
 ## Skills
 
 - [`adaptive-ai-team-bootstrap`](skills/engineering/adaptive-ai-team-bootstrap/SKILL.md) — drop an adaptive AI product-engineering team into any project with induction, Memory.md, roles, specialist teams, governance, and verification loops.
+- [`gauntlet`](skills/engineering/gauntlet/SKILL.md) — deterministic 5-stage agent pipeline: Gherkin specs → code → CRAP-clean → mutation-harden → QA, each stage ending in an exit-code gate.
 - [`one-thing-function`](skills/engineering/one-thing-function/SKILL.md) — strict function-design rules for new or existing codebases.
 - [`seeded-color-theme`](skills/design/seeded-color-theme/SKILL.md) — CSS-only palette generation from one seed color without tint-ladder slop.
 - [`swarm-sofa`](skills/engineering/swarm-sofa/SKILL.md) — turn multi-agent exploration into tested reusable SOFA knowledge.
@@ -32,6 +33,7 @@ npx skills add iamaamir/arc-forge --list
 ## Tools
 
 - [`one-thing-functions`](packages/one-thing-functions) — checker CLI for one-thing function rules.
+- [`gauntlet`](packages/gauntlet) — `gauntlet check` CLI gating projects on CRAP scores and mutation-test scores.
 
 Validate an installed adaptive AI-team footprint:
 
@@ -128,11 +130,20 @@ arc-forge/
         SKILL.md
       swarm-sofa/
         SKILL.md
+      gauntlet/
+        SKILL.md
+        references/
+        templates/
   packages/
     one-thing-functions/
       bin/
       src/
       profiles/
       examples/
+      tests/
+    gauntlet/
+      bin/
+      src/
+      profiles/
       tests/
 ```
