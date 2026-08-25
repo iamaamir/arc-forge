@@ -1,0 +1,63 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import process from "node:process";
+import test from "node:test";
+import assert from "node:assert/strict";
+import { crapFor, findCrapViolations } from "../src/crap.mjs";
+
+const cwd = process.cwd();
+
+test("CRAP equals complexity at full coverage", () => {
+  assert.equal(crapFor(4, 100), 4);
+});
+
+test("CRAP formula matches comp^2*(1-cov)+cc", () => {
+  assert.equal(crapFor(4, 50), 12);
+  assert.equal(crapFor(2, 0), 6);
+});
+
+function makeProject(t) {
+  const dir = mkdtempSync(path.join(tmpdir(), "gnt-crap-"));
+  t.after(() => {
+    process.chdir(cwd);
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const src = path.join(dir, "src");
+  mkdirSync(src);
+  writeFileSync(
+    path.join(src, "sample.js"),
+    "function tangled(a) {\n  if (a > 1) {\n    if (a > 2) {\n      if (a > 3) return 1;\n    }\n  }\n  return 0;\n}\n",
+  );
+  return dir;
+}
+
+function makeCoverage(dir, pct) {
+  const coverageDir = path.join(dir, "coverage");
+  mkdirSync(coverageDir);
+  writeFileSync(
+    path.join(coverageDir, "coverage-summary.json"),
+    JSON.stringify({
+      [path.join(dir, "src/sample.js")]: { lines: { pct } },
+    }),
+  );
+}
+
+test("findCrapViolations flags high-complexity uncovered functions", (t) => {
+  const dir = makeProject(t);
+  makeCoverage(dir, 0);
+  process.chdir(dir);
+  const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].name, "tangled");
+  assert.ok(violations[0].crap > 8);
+  assert.match(violations[0].message, /refactor or raise the threshold/);
+});
+
+test("findCrapViolations passes clean projects", (t) => {
+  const dir = makeProject(t);
+  makeCoverage(dir, 100);
+  process.chdir(dir);
+  const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
+  assert.deepEqual(violations, []);
+});
