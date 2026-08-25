@@ -3,7 +3,7 @@ import path from "node:path";
 import process from "node:process";
 import { analyzeFunctions } from "./complexity.mjs";
 import { listFiles } from "./filelist.mjs";
-import { readLineCoverage } from "./coverage.mjs";
+import { loadCoverageSummary } from "./coverage.mjs";
 
 export function crapFor(cc, coveragePct) {
   if (coveragePct >= 100) return cc;
@@ -11,13 +11,14 @@ export function crapFor(cc, coveragePct) {
 }
 
 export function findCrapViolations(config) {
-  return listFiles(config).flatMap((filePath) => crapViolationsForFile(filePath, config));
+  const lookupLineCoverage = loadCoverageSummary(config.coverageSummaryPath);
+  return listFiles(config).flatMap((filePath) => crapViolationsForFile(filePath, config, lookupLineCoverage));
 }
 
-function crapViolationsForFile(filePath, config) {
+function crapViolationsForFile(filePath, config, lookupLineCoverage) {
   const source = readFileSync(filePath, "utf8");
   return analyzeFunctions(source).flatMap((fn) => {
-    const coverage = readLineCoverage(config.coverageSummaryPath, filePath);
+    const coverage = lookupLineCoverage(filePath);
     const crap = Math.ceil(crapFor(fn.cc, coverage));
     if (crap <= config.crapThreshold) return [];
     const relative = path.relative(process.cwd(), filePath);
