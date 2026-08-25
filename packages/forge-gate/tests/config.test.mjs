@@ -35,7 +35,7 @@ test("default config exposes every knob", async (t) => {
   withTempDir(t);
   const config = await loadConfigAsync({});
   assert.deepEqual(config.roots, ["src"]);
-  assert.deepEqual(config.extensions, [".js", ".mjs", ".cjs"]);
+  assert.deepEqual(config.extensions, [".js", ".mjs", ".cjs", ".ts", ".mts", ".cts"]);
   assert.equal(config.mutationReportPath, "reports/mutation/mutation.json");
   assert.equal(config.qaCommand, "");
 });
@@ -51,7 +51,7 @@ test("null and undefined options fall back to defaults", async (t) => {
   withTempDir(t);
   const config = await loadConfigAsync({ roots: undefined, extensions: null });
   assert.deepEqual(config.roots, ["src"]);
-  assert.deepEqual(config.extensions, [".js", ".mjs", ".cjs"]);
+  assert.deepEqual(config.extensions, [".js", ".mjs", ".cjs", ".ts", ".mts", ".cts"]);
 });
 
 test("loadConfigAsync reads forge-gate.config.json overrides", async (t) => {

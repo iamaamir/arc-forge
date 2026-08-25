@@ -18,13 +18,13 @@ export function findCrapViolations(config) {
 }
 
 function crapViolationsForFile(filePath, config, coverageFor) {
+  const relative = path.relative(process.cwd(), filePath);
   let functions;
   try {
     const source = readFileSync(filePath, "utf8");
-    functions = analyzeFunctions(source);
+    functions = analyzeFunctions(source, { extension: path.extname(filePath), filename: relative });
   } catch (error) {
     if (!(error instanceof SyntaxError)) throw error;
-    const relative = path.relative(process.cwd(), filePath);
     const loc = error.loc ? `:${error.loc.line}:${error.loc.column}` : "";
     throw new SetupError(
       `cannot parse ${relative}${loc} — fix the file or remove it from roots/extensions`,
@@ -34,7 +34,6 @@ function crapViolationsForFile(filePath, config, coverageFor) {
     const coverage = coverageFor(filePath, fn.line, fn.endLine);
     const crap = Math.ceil(crapFor(fn.cc, coverage));
     if (crap <= config.crapThreshold) return [];
-    const relative = path.relative(process.cwd(), filePath);
     return [{
       file: relative,
       name: fn.name,

@@ -106,7 +106,8 @@ test("cli exits 2 cleanly when config lists .jsx extension", (t) => {
   writeFileSync(path.join(dir, "forge-gate.config.json"), JSON.stringify({ extensions: [".js", ".jsx"] }));
   const result = runCli(["check", "--crap"], dir);
   assert.equal(result.status, 2);
-  assert.match(result.stderr, /cannot parse .*widget\.jsx:\d+:\d+/);
+  assert.match(result.stderr, /no parser for extension "\.jsx"/);
+  assert.match(result.stderr, /\.jsx\/\.tsx are not supported/);
 });
 
 test("cli rejects empty numeric flag value", (t) => {

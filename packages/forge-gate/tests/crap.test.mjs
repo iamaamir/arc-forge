@@ -185,3 +185,54 @@ test("ignored directories are not scanned", (t) => {
   const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
   assert.deepEqual(violations, []);
 });
+
+test("uncovered TypeScript function is flagged at its original line", (t) => {
+  const dir = makeTsProject(t);
+  makeCoverage(dir, { covered: 0, total: 8, fileName: "sample.ts" });
+  process.chdir(dir);
+  const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].name, "tangled");
+  assert.equal(violations[0].line, 5);
+  assert.equal(violations[0].cc, 4);
+});
+
+test("TypeScript parameter properties fail the gate with a SetupError", (t) => {
+  const dir = makeTsProject(t, `class Greeter {\n  constructor(private service: Logger) {}\n}\n`);
+  makeCoverage(dir, { covered: 8, total: 8, fileName: "sample.ts" });
+  process.chdir(dir);
+  assert.throws(
+    () => findCrapViolations({ roots: ["src"], crapThreshold: 8 }),
+    (error) => {
+      assert.ok(error instanceof SetupError);
+      assert.match(error.message, /parameter propert/i);
+      assert.match(error.message, /sample\.ts/);
+      return true;
+    },
+  );
+});
+
+function makeTsProject(t, source = DEFAULT_TS_SOURCE) {
+  const dir = mkdtempSync(path.join(tmpdir(), "gnt-crap-ts-"));
+  t.after(() => {
+    process.chdir(cwd);
+    rmSync(dir, { recursive: true, force: true });
+  });
+  mkdirSync(path.join(dir, "src"));
+  writeFileSync(path.join(dir, "src", "sample.ts"), source);
+  return dir;
+}
+
+const DEFAULT_TS_SOURCE = `interface Bounds {
+  max: number;
+}
+
+function tangled(a: number, bounds: Bounds): number {
+  if (a > bounds.max) {
+    if (a > 2) {
+      if (a > 3) return 1;
+    }
+  }
+  return 0;
+}
+`;
