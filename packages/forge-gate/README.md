@@ -143,7 +143,7 @@ Never skip a gate because tooling is inconvenient — pick an equivalent tool in
 ```json
 {
   "roots": ["src"],
-  "extensions": [".js", ".mjs", ".cjs", ".jsx"],
+  "extensions": [".js", ".mjs", ".cjs"],
   "ignore": ["node_modules", ".git", "dist", "coverage", "reports"],
   "crapThreshold": 8,
   "coverageFinalPath": "coverage/coverage-final.json",
@@ -157,7 +157,16 @@ Never skip a gate because tooling is inconvenient — pick an equivalent tool in
 
 CLI flags override config values for a single run: `--crap=N`, `--mutation=N`, `--roots=src,lib`.
 
+Note the asymmetry on empty roots: `--roots=` (CLI, empty value) is treated as unset and falls back to defaults, while `"roots": []` in config is a setup error (exit 2). A config that says "no directories" is almost certainly a mistake; an empty flag usually means "not set".
+
+Only `.js`, `.mjs`, and `.cjs` are parsed by default. The parser is plain acorn — it cannot parse JSX or TypeScript. Listing `.jsx`/`.tsx` in `extensions` yields a clean setup error naming the offending file (`cannot parse <path>:<line>:<column>`), not a crash; fix or remove such files until proper JSX/TS support lands.
+
 **`SwitchCase` complexity semantics:** cyclomatic complexity counts each `case` clause *and* each `default` clause as +1, on top of the function's base complexity of 1. A three-way switch with a default therefore scores 5. This is consistent with how the CRAP gate is tuned against this tool.
+
+**Coverage semantics:** per-function coverage is computed from Istanbul statement maps:
+
+- Statements inside nested functions count toward the *enclosing* function's span coverage. This is conservative (fail-closed): an untested nested callback drags down the outer function's score instead of hiding behind it.
+- Functions whose line span intersects zero instrumented statements are treated as 100% covered. No statements means nothing to have covered.
 
 ## Philosophy
 

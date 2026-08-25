@@ -4,6 +4,7 @@ import process from "node:process";
 import { analyzeFunctions } from "./complexity.mjs";
 import { listFiles } from "./filelist.mjs";
 import { loadCoverage } from "./coverage.mjs";
+import { SetupError } from "./errors.mjs";
 
 export function crapFor(cc, coveragePct) {
   return cc * cc * (1 - coveragePct / 100) + cc;
@@ -17,8 +18,19 @@ export function findCrapViolations(config) {
 }
 
 function crapViolationsForFile(filePath, config, coverageFor) {
-  const source = readFileSync(filePath, "utf8");
-  return analyzeFunctions(source).flatMap((fn) => {
+  let functions;
+  try {
+    const source = readFileSync(filePath, "utf8");
+    functions = analyzeFunctions(source);
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+    const relative = path.relative(process.cwd(), filePath);
+    const loc = error.loc ? `:${error.loc.line}:${error.loc.column}` : "";
+    throw new SetupError(
+      `cannot parse ${relative}${loc} — fix the file or remove it from roots/extensions`,
+    );
+  }
+  return functions.flatMap((fn) => {
     const coverage = coverageFor(filePath, fn.line, fn.endLine);
     const crap = Math.ceil(crapFor(fn.cc, coverage));
     if (crap <= config.crapThreshold) return [];

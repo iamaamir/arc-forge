@@ -25,10 +25,6 @@ export function loadCoverage(finalPath = "coverage/coverage-final.json") {
   };
 }
 
-export function functionCoverage(coveragePath, filePath, startLine, endLine) {
-  return loadCoverage(coveragePath).coverageFor(filePath, startLine, endLine);
-}
-
 function findKey(exactKeys, keys, filePath) {
   const exact = exactKeys.get(canonicalize(filePath));
   if (exact !== undefined) return exact;

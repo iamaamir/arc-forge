@@ -35,7 +35,7 @@ test("default config exposes every knob", async (t) => {
   withTempDir(t);
   const config = await loadConfigAsync({});
   assert.deepEqual(config.roots, ["src"]);
-  assert.deepEqual(config.extensions, [".js", ".mjs", ".cjs", ".jsx"]);
+  assert.deepEqual(config.extensions, [".js", ".mjs", ".cjs"]);
   assert.equal(config.mutationReportPath, "reports/mutation/mutation.json");
   assert.equal(config.qaCommand, "");
 });
@@ -51,7 +51,7 @@ test("null and undefined options fall back to defaults", async (t) => {
   withTempDir(t);
   const config = await loadConfigAsync({ roots: undefined, extensions: null });
   assert.deepEqual(config.roots, ["src"]);
-  assert.deepEqual(config.extensions, [".js", ".mjs", ".cjs", ".jsx"]);
+  assert.deepEqual(config.extensions, [".js", ".mjs", ".cjs"]);
 });
 
 test("loadConfigAsync reads forge-gate.config.json overrides", async (t) => {
@@ -81,6 +81,25 @@ test("malformed config json raises a descriptive SetupError", async (t) => {
     (error) => {
       assert.ok(error instanceof SetupError);
       assert.match(error.message, /^invalid forge-gate\.config\.json: /);
+      return true;
+    },
+  );
+});
+
+test("null roots in config raise a descriptive SetupError", async (t) => {
+  const dir = withTempDir(t);
+  writeFileSync(path.join(dir, "forge-gate.config.json"), JSON.stringify({ roots: null }));
+  await assert.rejects(() => loadConfigAsync({}), /roots must be an array of directories/);
+});
+
+test("string roots in config raise a descriptive SetupError", async (t) => {
+  const dir = withTempDir(t);
+  writeFileSync(path.join(dir, "forge-gate.config.json"), JSON.stringify({ roots: "src" }));
+  await assert.rejects(
+    () => loadConfigAsync({}),
+    (error) => {
+      assert.ok(error instanceof SetupError);
+      assert.match(error.message, /roots must be an array of directories/);
       return true;
     },
   );

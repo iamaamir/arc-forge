@@ -25,10 +25,11 @@ run("npm", ["version", releaseType, "--workspace", pkgName, "--no-git-tag-versio
 const version = readPackageVersion(pkgName);
 run("git", ["add", "package-lock.json", `packages/${pkgName}/package.json`]);
 run("git", ["commit", "-m", `chore(release): bump ${pkgName} to ${version}`]);
-run("git", ["tag", `v${version}`]);
+const tag = `${pkgName}-v${version}`;
+run("git", ["tag", tag]);
 run("git", ["push", "origin", currentBranch()]);
-run("git", ["push", "origin", `v${version}`]);
-console.log(`Released ${pkgName} v${version}`);
+run("git", ["push", "origin", tag]);
+console.log(`Released ${pkgName} v${version} (tag ${tag})`);
 
 function ensureCleanWorkingTree() {
   const status = execFileSync("git", ["status", "--porcelain"], { encoding: "utf8" }).trim();

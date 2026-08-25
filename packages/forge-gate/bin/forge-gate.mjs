@@ -6,6 +6,7 @@ import { SetupError } from "../src/errors.mjs";
 const args = process.argv.slice(2);
 const command = args[0];
 const KNOWN_FLAGS = ["--spec", "--crap", "--mutation", "--qa"];
+const VALUE_FLAGS = new Set(["--crap", "--mutation", "--roots"]);
 const KNOWN_OPTION_PREFIXES = ["--crap=", "--mutation=", "--roots="];
 
 if (command !== "check") {
@@ -39,12 +40,17 @@ async function runCheck() {
 }
 
 function validateFlags() {
-  for (const arg of args) {
-    if (!arg.startsWith("--")) continue;
+  for (let i = 1; i < args.length; i++) {
+    const arg = args[i];
+    if (VALUE_FLAGS.has(arg)) {
+      const next = args[i + 1];
+      if (next !== undefined && !next.startsWith("--")) i++;
+      continue;
+    }
     if (KNOWN_FLAGS.includes(arg)) continue;
     if (KNOWN_OPTION_PREFIXES.some((prefix) => arg.startsWith(prefix))) continue;
     console.error(
-      `forge-gate: unknown flag "${arg}". Known flags: --spec, --crap, --mutation, --qa, --crap=N, --mutation=N, --roots=a,b`,
+      `forge-gate: unknown flag "${arg}". Known flags: --spec, --crap, --mutation, --qa, --crap=N, --mutation=N, --roots=a,b or --roots a,b`,
     );
     process.exitCode = 2;
     return false;
@@ -55,8 +61,10 @@ function validateFlags() {
 function validateNumericFlags() {
   for (const name of ["--crap", "--mutation"]) {
     const value = getOptionValue(name);
-    if (value !== undefined && !Number.isFinite(Number(value))) {
-      console.error(`forge-gate: ${name} expects a number, got "${value}"`);
+    if (value === undefined) continue;
+    const number = Number(value);
+    if (value === "" || !Number.isFinite(number) || number < 0) {
+      console.error(`forge-gate: ${name} expects a finite non-negative number, got "${value}"`);
       process.exitCode = 2;
       return false;
     }
@@ -81,7 +89,6 @@ function getOptionValue(name) {
   if (index === -1) return undefined;
   const next = args[index + 1];
   if (next === undefined || next.startsWith("--")) return undefined;
-  if ((name === "--crap" || name === "--mutation") && !Number.isFinite(Number(next))) return undefined;
   return next;
 }
 

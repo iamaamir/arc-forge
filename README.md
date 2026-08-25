@@ -64,7 +64,7 @@ node packages/one-thing-functions/bin/one-thing-functions.mjs check src
 Publish everything in one go:
 
 1. Bump package version.
-2. Push a `v*` tag, create a GitHub release, or run the `Publish npm packages` workflow manually.
+2. Push a `<package>-v<version>` tag (e.g. `forge-gate-v0.1.0`), create a GitHub release, or run the `Publish npm packages` workflow manually.
 
 Example release:
 
@@ -79,7 +79,7 @@ npm run publish -- minor
 npm run publish -- major
 ```
 
-The release script runs locally. It requires a clean working tree, runs tests, bumps the package version, commits the version change, creates a `v*` tag, pushes the current branch, and pushes the tag. Either workspace package can be released:
+The release script runs locally. It requires a clean working tree, runs tests, bumps the package version, commits the version change, creates a `<package>-v<version>` tag (e.g. `forge-gate-v0.1.0`), pushes the current branch, and pushes the tag. Either workspace package can be released:
 
 ```sh
 node scripts/release.mjs                            # one-thing-functions patch (defaults)
@@ -89,7 +89,7 @@ node scripts/release.mjs one-thing-functions minor
 
 The GitHub workflow never bumps versions or writes to `main`. It only publishes the package version already committed on the pushed tag. This keeps it compatible with protected branches.
 
-The workflow publishes all npm workspace packages on any `v*` tag, so bump a package's version independently before tagging it — otherwise stale versions of other packages get published alongside. Skills are installed directly from this GitHub repository via `npx skills add`, so adding future skills under `skills/` needs no publish-infra change.
+The workflow publishes all npm workspace packages on any version tag (`v*` or `*-v*`), so bump a package's version independently before tagging it — otherwise stale versions of other packages get published alongside. Tags are per-package (`<package>-v<version>`) so two packages can release the same version without colliding. Skills are installed directly from this GitHub repository via `npx skills add`, so adding future skills under `skills/` needs no publish-infra change.
 
 Trusted publishing setup on npmjs.com:
 

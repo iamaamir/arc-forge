@@ -1,7 +1,7 @@
 export default {
   profile: "default",
   roots: ["src"],
-  extensions: [".js", ".mjs", ".cjs", ".jsx"],
+  extensions: [".js", ".mjs", ".cjs"],
   ignore: ["node_modules", ".git", "dist", "coverage", "reports"],
   crapThreshold: 8,
   coverageFinalPath: "coverage/coverage-final.json",

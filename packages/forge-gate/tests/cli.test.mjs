@@ -70,6 +70,66 @@ test("cli accepts space-separated option form for numeric flags", (t) => {
   assert.match(result.stdout, /crap gates passed/);
 });
 
+test("cli accepts space-separated roots flag and scans that root", (t) => {
+  const dir = makeBadProject(t);
+  const result = runCli(["check", "--crap", "--roots", path.join(dir, "src")], dir);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /tangled/);
+});
+
+test("cli rejects single-dash flags", (t) => {
+  const dir = makeBadProject(t);
+  const result = runCli(["check", "-crape"], dir);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /unknown flag "-crape"/);
+});
+
+test("cli rejects stray positionals after check", (t) => {
+  const dir = makeBadProject(t);
+  const result = runCli(["check", "oops"], dir);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /unknown flag "oops"/);
+});
+
+test("cli exits 2 with filename when a source file cannot be parsed", (t) => {
+  const dir = makeBadProject(t);
+  writeFileSync(path.join(dir, "src", "broken.js"), "function oops( {\n");
+  const result = runCli(["check", "--crap"], dir);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /cannot parse .*broken\.js:\d+:\d+ — fix the file or remove it from roots\/extensions/);
+  assert.doesNotMatch(result.stderr, /crashed/);
+});
+
+test("cli exits 2 cleanly when config lists .jsx extension", (t) => {
+  const dir = makeBadProject(t);
+  writeFileSync(path.join(dir, "src", "widget.jsx"), "export default () => <div>hi</div>;\n");
+  writeFileSync(path.join(dir, "forge-gate.config.json"), JSON.stringify({ extensions: [".js", ".jsx"] }));
+  const result = runCli(["check", "--crap"], dir);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /cannot parse .*widget\.jsx:\d+:\d+/);
+});
+
+test("cli rejects empty numeric flag value", (t) => {
+  const dir = makeTempDir(t, "gnt-cli-num-");
+  const result = runCli(["check", "--mutation="], dir);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /--mutation expects a finite non-negative number, got ""/);
+});
+
+test("cli rejects negative numeric flag value", (t) => {
+  const dir = makeTempDir(t, "gnt-cli-num-");
+  const result = runCli(["check", "--mutation=-5"], dir);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /--mutation expects a finite non-negative number, got "-5"/);
+});
+
+test("cli rejects infinite numeric flag value", (t) => {
+  const dir = makeTempDir(t, "gnt-cli-num-");
+  const result = runCli(["check", "--crap=Infinity"], dir);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /--crap expects a finite non-negative number, got "Infinity"/);
+});
+
 test("mutationViolation rounds score to one decimal", () => {
   const message = mutationViolation(83.33333333333333, 85);
   assert.match(message, /mutation score 83\.3 /);
