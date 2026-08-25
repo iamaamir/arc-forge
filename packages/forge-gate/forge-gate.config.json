@@ -1,0 +1,12 @@
+{
+  "roots": ["src", "bin"],
+  "ignore": ["node_modules", ".git", "dist", "coverage", "reports", "stryker-tmp"],
+  "dependencyRules": {
+    "rules": [
+      { "from": "src/**", "allow": ["profiles/**"] },
+      { "from": "bin/**", "allow": ["src/**"] }
+    ],
+    "allowNodeModules": true,
+    "unmatched": "allow"
+  }
+}

@@ -49,3 +49,33 @@ test("runCommand kills a command that exceeds the configured timeout", () => {
   assert.equal(result.status, 1);
   assert.equal(result.timeoutSeconds, 1);
 });
+
+test("toCommandResult surfaces stream output alongside spawn errors", () => {
+  const error = new Error("spawn failed");
+  const result = toCommandResult({ error, stdout: "out", stderr: "err" }, 5);
+  assert.deepEqual(result, {
+    status: 1,
+    output: "outerr",
+    error,
+    timedOut: false,
+    timeoutSeconds: 5,
+  });
+});
+
+test("toCommandResult tolerates missing streams on spawn errors", () => {
+  const error = new Error("spawn failed");
+  const result = toCommandResult({ error });
+  assert.deepEqual(result, {
+    status: 1,
+    output: "",
+    error,
+    timedOut: false,
+    timeoutSeconds: 300,
+  });
+});
+
+test("toCommandResult marks only ETIMEDOUT errors as timeouts", () => {
+  const result = toCommandResult({ error: { code: "ENOBUFS" }, stdout: "", stderr: "" }, 9);
+  assert.equal(result.timedOut, false);
+  assert.equal(result.timeoutSeconds, 9);
+});

@@ -91,8 +91,7 @@ test("suffix matching requires a path segment boundary", (t) => {
   assert.equal(lookup.coverageFor("src/sample.js", 1, 1), 0);
 });
 
-test("ambiguous suffix keys raise SetupError listing candidates", (t) => {
-  const first = path.join("/somewhere", "projA", "src", "sample.js");
+test("ambiguous suffix keys raise SetupError listing candidates", (t) => {  const first = path.join("/somewhere", "projA", "src", "sample.js");
   const second = path.join("/elsewhere", "projB", "src", "sample.js");
   const dir = withTempProject(t, { [first]: istanbulEntry([[1, 1]]), [second]: istanbulEntry([[1, 0]]) });
   process.chdir(dir);
@@ -188,4 +187,23 @@ test("default path is used when finalPath is undefined", (t) => {
   process.chdir(dir);
   const lookup = loadCoverage();
   assert.equal(lookup.coverageFor("src/sample.js", 1, 1), 100);
+});
+
+test("ambiguous candidates are joined with commas in the error", (t) => {
+  const first = path.join("/somewhere", "projA", "src", "sample.js");
+  const second = path.join("/elsewhere", "projB", "src", "sample.js");
+  const dir = withTempProject(t, { [first]: istanbulEntry([[1, 1]]), [second]: istanbulEntry([[1, 0]]) });
+  process.chdir(dir);
+  const lookup = loadCoverage(finalPath(dir));
+  assert.throws(
+    () => lookup.coverageFor("src/sample.js", 1, 1),
+    (error) => {
+      assert.ok(error instanceof SetupError);
+      assert.ok(
+        error.message.includes(`end in ${path.sep}sample.js: ${first}, ${second}`),
+        error.message,
+      );
+      return true;
+    },
+  );
 });

@@ -104,3 +104,7 @@ test("string roots in config raise a descriptive SetupError", async (t) => {
     },
   );
 });
+
+test("non-string roots entries are rejected", async () => {
+  await assert.rejects(() => loadConfigAsync({ roots: [42] }), /roots must be an array of directories/);
+});

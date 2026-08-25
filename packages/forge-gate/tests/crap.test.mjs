@@ -236,3 +236,57 @@ function tangled(a: number, bounds: Bounds): number {
   return 0;
 }
 `;
+
+test("non-ASCII identifiers survive source reading", (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), "gnt-crap-uni-"));
+  t.after(() => {
+    process.chdir(cwd);
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const src = path.join(dir, "src");
+  mkdirSync(src);
+  writeFileSync(path.join(src, "uni.js"), "export const café = () => 42;\n");
+  makeCoverage(dir, { covered: 1, total: 1, fileName: "uni.js" });
+  process.chdir(dir);
+  const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
+  assert.deepEqual(violations, []);
+});
+
+test("syntax errors cite the exact file:line:col location", (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), "gnt-crap-bad-"));
+  t.after(() => {
+    process.chdir(cwd);
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const src = path.join(dir, "src");
+  mkdirSync(src);
+  writeFileSync(path.join(src, "broken.js"), "function {\n");
+  makeCoverage(dir, { covered: 1, total: 1, fileName: "broken.js" });
+  process.chdir(dir);
+  assert.throws(
+    () => findCrapViolations({ roots: ["src"], crapThreshold: 8 }),
+    (error) => {
+      assert.ok(error instanceof SetupError);
+      assert.match(error.message, /^cannot parse src\/broken\.js:\d+:\d+ — fix the file or remove it from roots\/extensions$/);
+      return true;
+    },
+  );
+});
+
+test("CRAP boundary: exactly cc^2*0.25+cc at threshold passes", (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), "gnt-crap-boundary-"));
+  t.after(() => {
+    process.chdir(cwd);
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const src = path.join(dir, "src");
+  mkdirSync(src);
+  writeFileSync(
+    path.join(src, "edge.js"),
+    "function f(a) {\n  if (a) {\n    return 1;\n  }\n  return 0;\n}\n",
+  );
+  makeCoverage(dir, { covered: 3, total: 4, fileName: "edge.js" });
+  process.chdir(dir);
+  const violations = findCrapViolations({ roots: ["src"], crapThreshold: 3 });
+  assert.deepEqual(violations, []);
+});

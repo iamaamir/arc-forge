@@ -205,3 +205,59 @@ function captureConsoleError(t) {
   });
   return captured;
 }
+
+test("gateOrder returns a defensive copy of the canonical order", async () => {
+  const { gateOrder } = await import("../src/check.mjs");
+  const order = gateOrder();
+  assert.deepEqual(order, ["deps", "spec", "crap", "mutation", "qa"]);
+  order.push("tampered");
+  assert.deepEqual(gateOrder(), ["deps", "spec", "crap", "mutation", "qa"]);
+});
+
+test("unexpected errors propagate instead of becoming setup failures", async () => {
+  await assert.rejects(
+    () =>
+      runGatesAsync(["deps"], {
+        dependencyRules: { rules: [{ from: "src/**", allow: [] }], unmatched: "allow" },
+      }),
+    TypeError,
+  );
+});
+
+test("command killed by output overflow reports could-not-run with cause", async (t) => {
+  const dir = makeTempDir(t, "gnt-enobufs-");
+  process.chdir(dir);
+  const result = await runGatesAsync(["spec"], {
+    testCommand: `node -e "process.stdout.write('x'.repeat(11 * 1024 * 1024))"`,
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.message, /^testCommand could not run: /);
+});
+
+test("coverage exactly as fresh as sources emits no staleness warning", async (t) => {
+  const dir = makeTempDir(t, "gnt-equalmtime-");
+  const src = path.join(dir, "src");
+  mkdirSync(src);
+  const sourcePath = path.join(src, "clean.js");
+  writeFileSync(sourcePath, "function fine(a) {\n  return a;\n}\n");
+  writeCoverageReport(dir, { "clean.js": 1 });
+  const stamp = new Date(Date.now() - 30_000);
+  utimesSync(sourcePath, stamp, stamp);
+  utimesSync(path.join(dir, "coverage", "coverage-final.json"), stamp, stamp);
+  process.chdir(dir);
+  const warnings = captureConsoleError(t);
+  const result = await runGatesAsync(["crap"], { roots: ["src"], crapThreshold: 8 });
+  assert.equal(result.status, 0);
+  assert.equal(warnings.output, "");
+});
+
+test("mutation gate passes when score equals the threshold exactly", async (t) => {
+  const dir = makeTempDir(t, "gnt-muteq-");
+  writeMutationReport(dir, 17, 3);
+  process.chdir(dir);
+  const result = await runGatesAsync(["mutation"], {
+    mutationReportPath: "reports/mutation/mutation.json",
+    mutationScoreThreshold: 85,
+  });
+  assert.deepEqual(result, { status: 0, failedGate: null, message: "mutation gates passed" });
+});

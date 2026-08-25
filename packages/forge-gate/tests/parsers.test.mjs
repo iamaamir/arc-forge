@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { getParser } from "../src/parsers/index.mjs";
+import { analyze as analyzeJavaScript } from "../src/parsers/javascript.mjs";
+import { analyze as analyzeTypeScript } from "../src/parsers/typescript.mjs";
 import { analyzeFunctions } from "../src/complexity.mjs";
 import { SetupError } from "../src/errors.mjs";
 
@@ -120,4 +122,176 @@ test("getParser exposes one parser per supported extension", () => {
     assert.equal(typeof getParser(ext), "function");
   }
   assert.throws(() => getParser(".jsx"), SetupError);
+});
+
+test("unknown extension error lists the exact supported set", () => {
+  assert.throws(
+    () => getParser(".jsx"),
+    (error) =>
+      error instanceof SetupError &&
+      error.message ===
+        'no parser for extension ".jsx". Supported: .js, .mjs, .cjs, .ts, .mts, .cts. ' +
+          ".jsx/.tsx are not supported.",
+  );
+});
+
+test("declarator, member, method and assignment names are all picked up", () => {
+  const fns = analyzeJavaScript(`
+const arrow = () => 1;
+const obj = {
+  method() { return 2; },
+  ["computed"]() { return 3; },
+};
+class Klass {
+  runner() { return 4; }
+}
+let assigned;
+assigned = function expr() { return 5; };
+`);
+  assert.deepEqual(
+    fns.map((fn) => fn.name),
+    ["arrow", "method", "computed", "runner", "assigned"],
+  );
+});
+
+test("nested functions count only their own decision points", () => {
+  const fns = analyzeJavaScript(
+    "function outer(x) {\n  if (x > 1) {\n    const inner = (y) => (y > 2 ? 1 : 0);\n  }\n  return x > 3 ? 1 : 0;\n}\n",
+  );
+  assert.deepEqual(fns.map((fn) => [fn.name, fn.cc, fn.line]), [
+    ["outer", 3, 1],
+    ["inner", 2, 3],
+  ]);
+});
+
+test("parameter properties are rejected with the exact message (single line)", () => {
+  assert.throws(
+    () => analyzeTypeScript("class G {\n  constructor(private service: Logger) {}\n}\n", { filename: "greeter.ts" }),
+    (error) =>
+      error instanceof SetupError &&
+      error.message ===
+        'greeter.ts: TypeScript parameter properties (e.g. "constructor(private service)") are not supported — ' +
+          "declare constructor parameters explicitly and assign them in the body",
+  );
+});
+
+test("parameter properties are rejected with the exact message (zero space)", () => {
+  assert.throws(
+    () => analyzeTypeScript("class G {\n  constructor(private a: T) {}\n}\n", { filename: "g.ts" }),
+    (error) =>
+      error instanceof SetupError && error.message.startsWith("g.ts: TypeScript parameter properties"),
+  );
+});
+
+test("parameter properties use the default input label when unnamed", () => {
+  assert.throws(
+    () => analyzeTypeScript("class G {\n  constructor(readonly id: number) {}\n}\n"),
+    (error) =>
+      error instanceof SetupError && error.message.startsWith("input: TypeScript parameter properties"),
+  );
+});
+
+test("multiline parameter properties are rejected with the exact message", () => {
+  const source = "class A {\n  constructor(\n    public name: string,\n  ) {}\n}\n";
+  assert.throws(
+    () => analyzeTypeScript(source, { filename: "a.ts" }),
+    (error) =>
+      error instanceof SetupError &&
+      error.message ===
+        'a.ts: TypeScript parameter properties (e.g. "constructor(private service)") are not supported — ' +
+          "declare constructor parameters explicitly and assign them in the body",
+  );
+});
+
+test("decorators are rejected with the exact message", () => {
+  const source = "function d(t: any): any {\n  return t;\n}\n\n@d({\n  singleton: true,\n})\nclass Service {\n  @d\n  run(): void {}\n}\n";
+  assert.throws(
+    () => analyzeTypeScript(source, { filename: "service.ts" }),
+    (error) =>
+      error instanceof SetupError &&
+      error.message ===
+        "service.ts: decorators (@) are not supported — remove them or exclude the file via roots/extensions",
+  );
+});
+
+test("an at-sign ending a template literal line is not a decorator", () => {
+  const source = "const c = `a@\nb`;\nexport function f(): number {\n  return 1;\n}\n";
+  const fns = analyzeTypeScript(source);
+  assert.equal(fns[0].name, "f");
+});
+
+test("a bare annotation-looking line is rejected as a decorator", () => {
+  assert.throws(
+    () => analyzeTypeScript("\n@foo\nexport function f(): number {\n  return 1;\n}\n", { filename: "b.ts" }),
+    (error) =>
+      error instanceof SetupError &&
+      error.message ===
+        "b.ts: decorators (@) are not supported — remove them or exclude the file via roots/extensions",
+  );
+});
+
+test("amaro transform failures surface with the exact prefix", () => {
+  const prefix = "cannot parse TypeScript in bad.ts: ";
+  const beyondPrefix = (message) =>
+    message.startsWith(prefix) && message.length > prefix.length + 1;
+  assert.throws(
+    () => analyzeTypeScript("const x: = 3;\n", { filename: "bad.ts" }),
+    (error) => error instanceof SetupError && beyondPrefix(error.message),
+  );
+});
+
+test("non-erasable constructs name the construct and remedy exactly", () => {
+  assert.throws(
+    () => analyzeFunctions(fixture("sample.ts"), { extension: ".ts", filename: "sample.ts" }),
+    (error) =>
+      error instanceof SetupError &&
+      /^sample\.ts: .+ — this non-erasable construct cannot be scored for CRAP because lowering it shifts line numbers$/.test(
+        error.message,
+      ),
+  );
+});
+
+test("parameter properties detected with space before the constructor paren", () => {
+  assert.throws(
+    () => analyzeTypeScript("class G {\n  constructor (private a: T) {}\n}\n", { filename: "g.ts" }),
+    (error) =>
+      error instanceof SetupError && error.message.startsWith("g.ts: TypeScript parameter properties"),
+  );
+});
+
+test("parameter properties detected with space after the constructor paren", () => {
+  assert.throws(
+    () => analyzeTypeScript("class G {\n  constructor( private a: T) {}\n}\n", { filename: "g.ts" }),
+    (error) =>
+      error instanceof SetupError && error.message.startsWith("g.ts: TypeScript parameter properties"),
+  );
+});
+
+test("column-zero decorators are rejected with the exact message", () => {
+  const source = "function d(t: any): any {\n  return t;\n}\n\n@d({singleton: true})\nclass Service {\nrun(): void {}\n}\n";
+  assert.throws(
+    () => analyzeTypeScript(source, { filename: "service.ts" }),
+    (error) =>
+      error instanceof SetupError &&
+      error.message ===
+        "service.ts: decorators (@) are not supported — remove them or exclude the file via roots/extensions",
+  );
+});
+
+test("indented-only decorators are rejected with the exact message", () => {
+  const source = "function d(t: any): any {\n  return t;\n}\n\nclass Service {\n  @d\n  run(): void {}\n}\n";
+  assert.throws(
+    () => analyzeTypeScript(source, { filename: "service.ts" }),
+    (error) =>
+      error instanceof SetupError &&
+      error.message ===
+        "service.ts: decorators (@) are not supported — remove them or exclude the file via roots/extensions",
+  );
+});
+
+test("at-signs inside trailing comments never trigger decorator rejection", () => {
+  const ok = 'export const k = 1; // mail user@home\nexport function f(): number {\n  return 1;\n}\n';
+  assert.equal(analyzeTypeScript(ok)[0].name, "f");
+  const dashy = '// tag@w-\nexport function g(): number {\n  return 2;\n}\n';
+  assert.equal(analyzeTypeScript(dashy)[0].name, "g");
 });

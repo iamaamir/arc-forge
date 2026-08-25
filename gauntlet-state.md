@@ -9,7 +9,7 @@ Requirement: Forge Gate v2 — TypeScript support, dependency-rule enforcement (
 | 1 Specify | passed | user approved 6aa8bd5 |
 | 2 Code | unit 3 done | TS support + deps gate + forge-rules skill shipped; all units complete |
 | 3 Clean | passed | worst CRAP before: 68 (checkPhaseCompletionEvidence); 19 violations → 0 |
-| 4 Harden | pending | final mutation score: tbd |
+| 4 Harden | passed | mutation score 77.32 → **92.32** (1046 detected / 1133); gate `check --mutation` exit 0; 87 survivors documented equivalent |
 | 5 QA | pending | docs/QA-v2.md |
 
 ## Decisions
@@ -40,6 +40,27 @@ Requirement: Forge Gate v2 — TypeScript support, dependency-rule enforcement (
 - 2026-08-26: allowNodeModules glob arrays match both the bare specifier's name-path (`@scope/pkg`) and the resolved node_modules-relative path.
 - 2026-08-26: broken or repo-escaping relative imports are gate failures (exit 1), distinct from structural misconfiguration (SetupError, exit 2).
 - 2026-08-26: root forge-gate.config.json gained `"roots": ["scripts","packages","skills"]` and `"fixtures"` ignore — the negotiated rules were scanning nothing (default roots ["src"] does not exist at repo root), making the gate vacuous. Rules themselves untouched.
+
+### Unit 4 (Harden stage) decisions
+
+- 2026-08-26: mutation score raised 77.32 → 92.32 (1042 killed + 4 timeout of 1133) across three stryker iterations, without lowering any threshold. Kill strategy: exact full-message equality assertions (loose regexes were matching the WRONG error path — e.g. `/parameter propert/i` matched amaro's strip-only rejection instead of the param-property pre-check, hiding 13 regex mutants), boundary tests (score == threshold, CRAP == threshold, mtime == mtime), scan-order-controlled sort assertions, dotted-glob crossing, `new require()`/non-literal require cases, and TS sources through the deps gate.
+- 2026-08-26: dogfood gap closed: packages/forge-gate now ships its own forge-gate.config.json (src self-contained + profiles allow; bin may import src) so `check --deps --crap --mutation` exits 0 from the package dir. Found by running the package's own gates on itself per the dogfooding mandate.
+- 2026-08-26: test files count as 0%-coverage code for the repo-root CRAP gate (c8 only reports loaded src), so every new test-file function is held to cc ≤ 2 (CRAP 6 ≤ 8 uncovered). Two offenders found by the gate itself and split into cc ≤ 2 helpers.
+- 2026-08-26: documented equivalent survivors (87 total, accepted — behavior genuinely identical or unreachable):
+  - Buffer-vs-utf8 `readFileSync(path, "")` mutants (mutation.mjs:12, config.mjs:29, coverage.mjs:15, crap.mjs:24, deps.mjs:89): JSON.parse/acorn handle Buffers identically on these paths; empirically confirmed with a non-ASCII identifier test that already passes under the mutant.
+  - deps.mjs literalString typeof cluster (127:x): extractImports re-checks `typeof literal === "string"`, so literalString's own check is doubly guarded; require(42)-style mutants are filtered before resolution.
+  - deps.mjs matcher cache (70:11 true → always recompile, 72:9 drop cache-set): performance-only, results identical.
+  - deps.mjs MULTILINE_PARAM_PROPERTIES regex (all 8 line-14 mutants): fully redundant — `\s` in PARAM_PROPERTIES already matches `\n`, so the multiline alternative can never change the OR result. Cleanup candidate: delete the redundant regex in a future refactor.
+  - typescript.mjs positionsUsable cluster (62:x, 72:x, 73:x) plus shifted-lines message parts (64:7, 65:9) and strip-options `{}` (54:38 — amaro's DEFAULT mode is strip-only): defensive code unreachable because rejectUnsupportedSyntax and the strip-error catch intercept every construct that could desync oracle vs transform function lists.
+  - javascript.mjs junk-registration directions (53:7 ×2, 59:7, 65:7 ×3): mutating registration guards to `true` only inserts entries keyed by nodes never queried; names.get misses fall back to "(anonymous)" identically. Optional-chaining removals (60:x) are covered by the `?? node.key.value` fallback. 74:36 `node.body !== body` → `true` is a tautology within its guard (a body node never equals the outer body).
+  - coverage.mjs suffix-form fallbacks (42:x, 43:x): canonicalized exact-key matching makes form1/form2 mutually redundant (form2 duplicates form1 whenever the file is missing; existing files hit the exact map), and junk forms ("Stryker was here!", global `./` replace) can never suffix-match absolute real keys.
+  - deps.mjs validation dead paths: assertValidGlob try/catch (471-474) is unreachable — picomatch.makeRe did not throw on any probed input (verified over 22 pathological globs); the where-labels feeding it (449:30/38, 463:59, 474:26) inherit unreachability; assertNonEmptyPatternString non-string branches (479:7, 481:36) are pre-filtered by array-of-strings checks; empty-rules early-return disjunct (426:36) only matters when the other disjunct already returns.
+  - deps.mjs sort inner ternary (46:31 ×4): comparator-consistency edge unobservable through Array.prototype.sort — TimSort's binary insertion only consults the comparison arm that stays correct; outer ordering verified by dedicated reverse-scan-order tests.
+  - deps.mjs defensive resolution branches: unmatched-reason "" (246:49) — brokenImportMessage treats every non-"escapes" reason with the same text; kind "relative"→"" (247:18) empirically equivalent end-to-end; insideRoot exact-root disjunct (314:10) and dangling-realpath classify branch (300:x) unreachable behind existsSync/realpathSync pre-checks; toNodeModulesPath index===-1 arm (328:10) unreachable for real node_modules candidates; slice offset ±path.sep.length (328:20) identical while path.sep length is 1 (POSIX-only divergence).
+  - deps.mjs subpath-import guards (359:18, 360:7, 366:19, 375:7, 377:7 CE-false directions): falsy targets flow through the same `typeof !== "string"` exit as the original early returns.
+  - commands.mjs defaultCommandTimeoutSeconds "" (9:17): observable only via a command running >300s with the default timeout; accepted. Template concat mutant (22:15) produces identical output ordering.
+  - Known anomaly: deps.mjs:333 MethodExpression (`specifier.split("/").slice(0,2).join("/")` → `specifier.split("/")`) is reported Survived but hand-applying exactly that replacement fails two scoped-workspace tests. Tracked for follow-up investigation (suspect instrumenter/mutant-switching nuance), not silently dropped.
+- 2026-08-26: runtime note: full-suite-per-mutant command runner completes in ~9 minutes at 1133 mutants (~0.5s/suite); no fast-split Stryker config needed.
 
 ### Unit 3 (forge-rules skill + viz guide) implementation decisions
 
