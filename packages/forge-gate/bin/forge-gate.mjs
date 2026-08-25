@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import { loadConfigAsync } from "../src/config.mjs";
-import { runGatesAsync } from "../src/check.mjs";
+import { runGatesAsync, gateOrder } from "../src/check.mjs";
 import { SetupError } from "../src/errors.mjs";
 
 const args = process.argv.slice(2);
 const command = args[0];
-const KNOWN_FLAGS = ["--spec", "--crap", "--mutation", "--qa"];
+const KNOWN_FLAGS = ["--deps", "--spec", "--crap", "--mutation", "--qa"];
 const VALUE_FLAGS = new Set(["--crap", "--mutation", "--roots"]);
 const KNOWN_OPTION_PREFIXES = ["--crap=", "--mutation=", "--roots="];
 
@@ -25,7 +25,7 @@ async function runCheck() {
   };
   try {
     const config = await loadConfigAsync(options);
-    const result = await runGatesAsync(gates.length ? gates : ["spec", "crap", "mutation", "qa"], config);
+    const result = await runGatesAsync(gates.length ? gates : gateOrder(), config);
     if (result.status !== 0) console.error(result.message);
     else console.log(result.message);
     process.exitCode = result.status;
@@ -50,7 +50,7 @@ function validateFlags() {
     if (KNOWN_FLAGS.includes(arg)) continue;
     if (KNOWN_OPTION_PREFIXES.some((prefix) => arg.startsWith(prefix))) continue;
     console.error(
-      `forge-gate: unknown flag "${arg}". Known flags: --spec, --crap, --mutation, --qa, --crap=N, --mutation=N, --roots=a,b or --roots a,b`,
+      `forge-gate: unknown flag "${arg}". Known flags: --deps, --spec, --crap, --mutation, --qa, --crap=N, --mutation=N, --roots=a,b or --roots a,b`,
     );
     process.exitCode = 2;
     return false;
@@ -96,10 +96,12 @@ function printHelp() {
   console.log(`forge-gate
 
 Usage:
-  forge-gate check [--spec] [--crap] [--mutation] [--qa]
+  forge-gate check [--deps] [--spec] [--crap] [--mutation] [--qa]
                  [--crap=N | --crap N] [--mutation=N | --mutation N]
                  [--roots=src,lib | --roots src,lib]
 
-Runs deterministic quality gates. With no gate flags, runs all gates.
+Runs deterministic quality gates. The deps gate (dependency-rule enforcement
+from dependencyRules in forge-gate.config.json) runs first. With no gate flags,
+runs all gates.
 Exit codes: 0 pass, 1 gate failure, 2 setup error.`);
 }

@@ -1,0 +1,11 @@
+{
+  "roots": ["src"],
+  "dependencyRules": {
+    "rules": [
+      { "from": "src/core/**", "allow": [] },
+      { "from": "src/cli/**", "allow": [], "forbid": ["src/core/**"] }
+    ],
+    "allowNodeModules": true,
+    "unmatched": "allow"
+  }
+}

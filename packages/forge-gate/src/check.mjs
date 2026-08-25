@@ -1,12 +1,17 @@
 import { statSync } from "node:fs";
 import path from "node:path";
+import { runDepsGate } from "./deps.mjs";
 import { findCrapViolations } from "./crap.mjs";
 import { listFiles } from "./filelist.mjs";
 import { getMutationScore, mutationViolation } from "./mutation.mjs";
 import { runCommand } from "./commands.mjs";
 import { SetupError } from "./errors.mjs";
 
-const GATE_ORDER = ["spec", "crap", "mutation", "qa"];
+const GATE_ORDER = ["deps", "spec", "crap", "mutation", "qa"];
+
+export function gateOrder() {
+  return [...GATE_ORDER];
+}
 
 export async function runGatesAsync(requestedGates, config) {
   const gates = GATE_ORDER.filter((gate) => requestedGates.includes(gate));
@@ -39,6 +44,7 @@ function toSetupFailure(error) {
 const GATE_RUNNERS = {
   spec: (config) => runCommandGate("testCommand", config),
   qa: (config) => runCommandGate("qaCommand", config),
+  deps: (config) => runDepsGate(config),
   crap: (config) => runCrapGate(config),
   mutation: (config) => runMutationGate(config),
 };
