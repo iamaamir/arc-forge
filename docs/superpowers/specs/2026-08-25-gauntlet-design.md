@@ -15,7 +15,7 @@ Two deliverables:
 
 - Replace prompt-based steering with deterministic gates: every stage ends in a command that fails loudly.
 - Keep each stage in a clean context (subagent when available) to avoid context dilution.
-- Ship working JS/TS gates out of the box while letting agents adapt the same stage logic to any ecosystem.
+- Ship working JavaScript gates out of the box while letting agents adapt the same stage logic to any ecosystem.
 - Dogfood: the `packages/forge-gate` package is built by running its own pipeline stages (spec first, then code, then clean, then mutation-harden).
 
 ## Non-Goals
@@ -43,7 +43,7 @@ Two deliverables:
 - Otherwise, one agent walks the stages sequentially in a single session.
 - Stage progress is tracked in a `gauntlet-state.md` artifact in the target project so interrupted runs resume from the last passed gate.
 
-### Non-JS/TS Projects
+### Non-JavaScript Projects
 
 The skill instructs the agent to discover ecosystem-standard equivalents (for example `mutmut`, `cargo-mutants`, `go-mutesting`) and run the same gate logic via configuration that points at those commands. Arc Forge ships no non-JS tooling itself.
 

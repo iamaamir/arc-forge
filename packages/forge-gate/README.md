@@ -21,7 +21,7 @@ npx forge-gate check --crap=12  # override a threshold for one run
 
 ---
 
-## 1. Existing JS/TS project
+## 1. Existing JavaScript project
 
 **Step 1 — make sure tests + coverage run.** The CRAP gate reads Istanbul-format coverage (`coverage/coverage-final.json`) and computes coverage per function, not per file. Wire c8 into your test script if you don't have it:
 

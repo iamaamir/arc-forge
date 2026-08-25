@@ -87,12 +87,9 @@ test("stops at first failing gate and follows canonical order", async () => {
   assert.equal(result.failedGate, "spec");
 });
 
-test("requesting every gate in reverse order still runs spec first", async (t) => {
-  const dir = makeTempDir(t, "gnt-order-");
-  process.chdir(dir);
-  const result = await runGatesAsync(["qa", "mutation", "crap"], {});
-  assert.equal(result.status, 2);
-  assert.match(result.message, /^no coverage data at/);
+test("gates run in canonical order regardless of request order", async () => {
+  const result = await runGatesAsync(["qa", "mutation", "crap", "spec"], { testCommand: "false" });
+  assert.equal(result.failedGate, "spec");
 });
 
 test("selecting no known gates reports no gates selected", async () => {

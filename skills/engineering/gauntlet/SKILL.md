@@ -29,7 +29,7 @@ At the start, copy `templates/gauntlet-state.md` to `gauntlet-state.md` in the t
 
 ## Non-JS/TS projects
 
-Use the `forge-gate` package for JS/TS (install it or run it via npx). For other ecosystems, keep the same stage structure but substitute ecosystem tools: complexity+coverage analyzers for the CRAP gate, `mutmut`/`cargo-mutants`/etc. for mutation. The `forge-gate` CLI cannot parse non-JS code, so run the substituted commands directly and track them and their results in `gauntlet-state.md`. Never skip a gate because tooling is inconvenient — pick an equivalent tool instead.
+Use the `forge-gate` package for JavaScript (install it or run it via npx). For other ecosystems, keep the same stage structure but substitute ecosystem tools: complexity+coverage analyzers for the CRAP gate, `mutmut`/`cargo-mutants`/etc. for mutation. The `forge-gate` CLI cannot parse non-JS code, so run the substituted commands directly and track them and their results in `gauntlet-state.md`. Never skip a gate because tooling is inconvenient — pick an equivalent tool instead.
 
 ## Rules
 

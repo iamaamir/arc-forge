@@ -3,21 +3,10 @@ import path from "node:path";
 import defaultProfile from "../profiles/default.mjs";
 import { SetupError } from "./errors.mjs";
 
-export const defaultConfig = {
-  roots: ["src"],
-  extensions: [".js", ".mjs", ".cjs", ".jsx"],
-  ignore: ["node_modules", ".git", "dist", "coverage", "reports"],
-  crapThreshold: 8,
-  coverageFinalPath: "coverage/coverage-final.json",
-  mutationReportPath: "reports/mutation/mutation.json",
-  mutationScoreThreshold: 85,
-  testCommand: "",
-  qaCommand: "",
-  commandTimeoutSeconds: 300,
-};
+export const defaultConfig = { ...defaultProfile };
 
 export async function loadConfigAsync(options = {}) {
-  const merged = { ...defaultConfig, ...defaultProfile, ...readConfigFile(), ...stripEmpty(options) };
+  const merged = { ...defaultConfig, ...readConfigFile(), ...stripEmpty(options) };
   if (Array.isArray(merged.roots) && merged.roots.length === 0) {
     throw new SetupError(
       'roots cannot be empty. Set "roots" to at least one directory in forge-gate.config.json, e.g. "roots": ["src"].',

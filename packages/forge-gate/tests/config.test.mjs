@@ -15,6 +15,12 @@ test("defaultConfig has Uncle Bob defaults", () => {
   assert.equal(defaultConfig.commandTimeoutSeconds, 300);
 });
 
+test("profile is the single source of truth for defaults", async () => {
+  const { default: profile } = await import("../profiles/default.mjs");
+  assert.equal(profile.profile, "default");
+  assert.deepEqual(defaultConfig, profile);
+});
+
 function withTempDir(t) {
   const dir = mkdtempSync(path.join(tmpdir(), "gnt-cfg-"));
   t.after(() => {
