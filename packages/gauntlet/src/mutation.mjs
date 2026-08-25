@@ -7,7 +7,12 @@ export function getMutationScore(reportPath) {
       `no mutation report at ${reportPath}. Generate one by running Stryker:\n  npx stryker run\nand configure reports: ["json"] in stryker.config.json.`,
     );
   }
-  const report = JSON.parse(readFileSync(reportPath, "utf8"));
+  let report;
+  try {
+    report = JSON.parse(readFileSync(reportPath, "utf8"));
+  } catch {
+    throw new SetupError(`invalid mutation report at ${reportPath}. Regenerate it by running Stryker:\n  npx stryker run`);
+  }
   return computeMutationScore(report);
 }
 

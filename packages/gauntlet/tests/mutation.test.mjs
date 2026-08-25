@@ -52,6 +52,21 @@ test("entries without a mutants list do not distort the score", () => {
   assert.equal(computeMutationScore(report), 100);
 });
 
+test("corrupt mutation report raises SetupError naming the file", (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), "gnt-mut-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const report = path.join(dir, "mutation.json");
+  writeFileSync(report, "{bad json");
+  assert.throws(
+    () => getMutationScore(report),
+    (error) => {
+      assert.ok(error instanceof SetupError);
+      assert.match(error.message, new RegExp(`^invalid mutation report at ${report.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+      return true;
+    },
+  );
+});
+
 test("getMutationScore throws SetupError when report missing", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "gnt-mut-"));
   try {

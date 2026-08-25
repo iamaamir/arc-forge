@@ -142,12 +142,12 @@ test("mutation gate fails below threshold with violation text", async (t) => {
   );
 });
 
-test("corrupt mutation report propagates as a non-setup error", async (t) => {
+test("corrupt mutation report surfaces as a setup error with exit 2", async (t) => {
   const dir = makeTempDir(t, "gnt-mutbad-");
   writeFileSync(path.join(dir, "broken.json"), "{not json");
   process.chdir(dir);
-  await assert.rejects(
-    () => runGatesAsync(["mutation"], { mutationReportPath: "broken.json", mutationScoreThreshold: 85 }),
-    SyntaxError,
-  );
+  const result = await runGatesAsync(["mutation"], { mutationReportPath: "broken.json", mutationScoreThreshold: 85 });
+  assert.equal(result.status, 2);
+  assert.equal(result.failedGate, null);
+  assert.match(result.message, /^invalid mutation report at .*broken\.json/);
 });

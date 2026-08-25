@@ -21,6 +21,24 @@ function withTempProject(t, summary) {
   return dir;
 }
 
+test("corrupt coverage summary raises SetupError naming the file", (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), "gnt-cov-bad-"));
+  t.after(() => {
+    process.chdir(cwd);
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const summaryPath = path.join(dir, "cov.json");
+  writeFileSync(summaryPath, "{bad json");
+  assert.throws(
+    () => loadCoverageSummary(summaryPath),
+    (error) => {
+      assert.ok(error instanceof SetupError);
+      assert.match(error.message, new RegExp(`^invalid coverage summary at ${summaryPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+      return true;
+    },
+  );
+});
+
 test("missing coverage summary raises SetupError with remedy", () => {
   const missing = path.join(tmpdir(), "gnt-cov-nowhere", "cov.json");
   assert.throws(

@@ -6,8 +6,10 @@ import { SetupError } from "../src/errors.mjs";
 const args = process.argv.slice(2);
 const command = args[0];
 
-if (command !== "check") printHelp();
-else await runCheck();
+if (command !== "check") {
+  printHelp();
+  process.exitCode = 2;
+} else await runCheck();
 
 async function runCheck() {
   const gates = ["spec", "crap", "mutation", "qa"].filter((gate) => args.includes(`--${gate}`));

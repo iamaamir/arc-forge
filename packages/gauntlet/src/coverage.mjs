@@ -9,7 +9,12 @@ export function loadCoverageSummary(summaryPath = "coverage/coverage-summary.jso
       `no coverage summary at ${summaryPath}. Generate it by running your tests under c8:\n  npx c8 --reporter=json-summary <your test command>`,
     );
   }
-  const summary = JSON.parse(readFileSync(resolved, "utf8"));
+  let summary;
+  try {
+    summary = JSON.parse(readFileSync(resolved, "utf8"));
+  } catch {
+    throw new SetupError(`invalid coverage summary at ${summaryPath}. Regenerate it with: npx c8 --reporter=json-summary <your test command>`);
+  }
   const keys = new Map(Object.keys(summary).map((key) => [canonicalize(key), key]));
   return (filePath) => {
     const key = keys.get(canonicalize(filePath)) ?? findSuffixKey(Object.keys(summary), filePath);

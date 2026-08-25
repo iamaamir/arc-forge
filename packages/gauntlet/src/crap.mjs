@@ -11,7 +11,9 @@ export function crapFor(cc, coveragePct) {
 
 export function findCrapViolations(config) {
   const lookupLineCoverage = loadCoverageSummary(config.coverageSummaryPath);
-  return listFiles(config).flatMap((filePath) => crapViolationsForFile(filePath, config, lookupLineCoverage));
+  return listFiles(config)
+    .flatMap((filePath) => crapViolationsForFile(filePath, config, lookupLineCoverage))
+    .sort((a, b) => b.crap - a.crap);
 }
 
 function crapViolationsForFile(filePath, config, lookupLineCoverage) {

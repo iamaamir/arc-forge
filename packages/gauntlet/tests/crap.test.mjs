@@ -36,6 +36,22 @@ test("CRAP just above threshold is flagged", (t) => {
   assert.equal(violations[0].crap, 9);
 });
 
+test("violations are listed worst offenders first", (t) => {
+  const dir = makeProject(t);
+  writeFileSync(
+    path.join(dir, "src", "sample.js"),
+    "function mild(a) {\n  if (a > 1) {\n    if (a > 2) {\n      if (a > 3) return 1;\n    }\n  }\n  return 0;\n}\n"
+      + "function worst(a) {\n  if (a > 1) {\n    if (a > 2) {\n      if (a > 3) {\n        if (a > 4) return 2;\n      }\n    }\n  }\n  return 0;\n}\n",
+  );
+  makeCoverage(dir, 0);
+  process.chdir(dir);
+  const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
+  assert.deepEqual(violations.map((violation) => violation.crap).sort((a, b) => b - a), [30, 20]);
+  assert.equal(violations[0].name, "worst");
+  assert.equal(violations[0].crap, 30);
+  assert.equal(violations[1].name, "mild");
+});
+
 function makeProject(t) {
   const dir = mkdtempSync(path.join(tmpdir(), "gnt-crap-"));
   t.after(() => {
