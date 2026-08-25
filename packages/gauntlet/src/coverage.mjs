@@ -13,7 +13,6 @@ export function loadCoverageSummary(summaryPath = "coverage/coverage-summary.jso
   const keys = new Map(Object.keys(summary).map((key) => [canonicalize(key), key]));
   return (filePath) => {
     const key = keys.get(canonicalize(filePath)) ?? findSuffixKey(Object.keys(summary), filePath);
-    if (!key) return 0;
     return summary[key]?.lines?.pct ?? 0;
   };
 }
@@ -29,9 +28,5 @@ function findSuffixKey(keys, filePath) {
 
 function canonicalize(filePath) {
   const resolved = path.resolve(filePath);
-  try {
-    return realpathSync(resolved);
-  } catch {
-    return resolved;
-  }
+  return existsSync(resolved) ? realpathSync(resolved) : resolved;
 }

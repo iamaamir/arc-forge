@@ -8,29 +8,40 @@ const GATE_ORDER = ["spec", "crap", "mutation", "qa"];
 export async function runGatesAsync(requestedGates, config) {
   const gates = GATE_ORDER.filter((gate) => requestedGates.includes(gate));
   try {
-    for (const gate of gates) {
-      const failures = await runGate(gate, config);
-      if (failures.length > 0) {
-        return { status: 1, failedGate: gate, message: failures.join("\n") };
-      }
-    }
-    return {
-      status: 0,
-      failedGate: null,
-      message: gates.length ? `${gates.join(", ")} gates passed` : "no gates selected",
-    };
+    return await runAllGates(gates, config);
   } catch (error) {
-    if (error instanceof SetupError) return { status: 2, failedGate: null, message: error.message };
-    throw error;
+    return toSetupFailure(error);
   }
 }
 
+async function runAllGates(gates, config) {
+  for (const gate of gates) {
+    const failures = await runGate(gate, config);
+    if (failures.length > 0) {
+      return { status: 1, failedGate: gate, message: failures.join("\n") };
+    }
+  }
+  return { status: 0, failedGate: null, message: summarizePass(gates) };
+}
+
+function summarizePass(gates) {
+  return gates.length ? `${gates.join(", ")} gates passed` : "no gates selected";
+}
+
+function toSetupFailure(error) {
+  if (error instanceof SetupError) return { status: 2, failedGate: null, message: error.message };
+  throw error;
+}
+
+const GATE_RUNNERS = {
+  spec: (config) => runCommandGate("testCommand", config),
+  qa: (config) => runCommandGate("qaCommand", config),
+  crap: (config) => runCrapGate(config),
+  mutation: (config) => runMutationGate(config),
+};
+
 async function runGate(gate, config) {
-  if (gate === "spec") return runCommandGate("testCommand", config);
-  if (gate === "qa") return runCommandGate("qaCommand", config);
-  if (gate === "crap") return runCrapGate(config);
-  if (gate === "mutation") return runMutationGate(config);
-  return [];
+  return GATE_RUNNERS[gate](config);
 }
 
 function runCommandGate(key, config) {

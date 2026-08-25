@@ -8,7 +8,31 @@ export function getMutationScore(reportPath) {
     );
   }
   const report = JSON.parse(readFileSync(reportPath, "utf8"));
-  return report.mutationScore;
+  return computeMutationScore(report);
+}
+
+const DETECTED = new Set(["Killed", "Timeout"]);
+const SCORED = new Set([...DETECTED, "Survived", "NoCoverage"]);
+
+export function computeMutationScore(report) {
+  const statuses = mutantStatuses(report);
+  return ratio(detected(statuses), scored(statuses));
+}
+
+function mutantStatuses(report) {
+  return Object.values(report.files ?? {}).flatMap((file) => file.mutants ?? []).map((mutant) => mutant.status);
+}
+
+function detected(statuses) {
+  return statuses.filter((status) => DETECTED.has(status)).length;
+}
+
+function scored(statuses) {
+  return statuses.filter((status) => SCORED.has(status)).length;
+}
+
+function ratio(part, whole) {
+  return whole === 0 ? 0 : (part / whole) * 100;
 }
 
 export function mutationViolation(score, threshold) {

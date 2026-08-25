@@ -16,18 +16,11 @@ export function analyzeFunctions(source) {
   const ast = parse(source, { ecmaVersion: "latest", sourceType: "module", locations: true });
   const names = buildParentNames(ast);
   const functions = [];
-  const visit = (node) => {
-    if (!node || typeof node.type !== "string") return;
-    if (isFunctionNode(node)) {
-      const name = node.type === "FunctionDeclaration" ? node.id?.name : names.get(node) ?? "(anonymous)";
-      functions.push({ name, line: node.loc.start.line, cc: countComplexity(node.body) });
-    }
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(visit);
-      else if (value && typeof value.type === "string") visit(value);
-    }
-  };
-  visit(ast);
+  walk(ast, (node) => {
+    if (!isFunctionNode(node)) return;
+    const found = node.type === "FunctionDeclaration" ? node.id?.name : names.get(node);
+    functions.push({ name: found ?? "(anonymous)", line: node.loc.start.line, cc: countComplexity(node.body) });
+  });
   return functions;
 }
 
@@ -35,40 +28,54 @@ function isFunctionNode(node) {
   return ["FunctionDeclaration", "FunctionExpression", "ArrowFunctionExpression"].includes(node.type);
 }
 
+function walk(node, visit) {
+  if (!node || typeof node.type !== "string") return;
+  if (visit(node)) return;
+  for (const value of Object.values(node)) {
+    if (Array.isArray(value)) value.forEach((child) => walk(child, visit));
+    else walk(value, visit);
+  }
+}
+
 function buildParentNames(ast) {
   const map = new Map();
-  const visit = (node) => {
-    if (!node || typeof node.type !== "string") return;
-    if (node.type === "VariableDeclarator" && node.id.type === "Identifier" && isFunctionNode(node.init)) {
-      map.set(node.init, node.id.name);
-    }
-    if ((node.type === "Property" || node.type === "MethodDefinition") && isFunctionNode(node.value)) {
-      map.set(node.value, node.key?.name ?? node.key?.value);
-    }
-    if (node.type === "AssignmentExpression" && node.left.type === "Identifier" && isFunctionNode(node.right)) {
-      map.set(node.right, node.left.name);
-    }
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(visit);
-      else if (value && typeof value.type === "string") visit(value);
-    }
-  };
-  visit(ast);
+  walk(ast, (node) => registerName(map, node));
   return map;
+}
+
+function registerName(map, node) {
+  if (node.type === "VariableDeclarator") return registerDeclaratorName(map, node);
+  if (node.type === "Property" || node.type === "MethodDefinition") return registerMemberName(map, node);
+  if (node.type === "AssignmentExpression") return registerAssignmentName(map, node);
+}
+
+function registerDeclaratorName(map, node) {
+  if (node.id.type === "Identifier" && node.init && isFunctionNode(node.init)) {
+    map.set(node.init, node.id.name);
+  }
+}
+
+function registerMemberName(map, node) {
+  if (isFunctionNode(node.value)) {
+    map.set(node.value, node.key?.name ?? node.key?.value);
+  }
+}
+
+function registerAssignmentName(map, node) {
+  if (node.left.type === "Identifier" && isFunctionNode(node.right)) {
+    map.set(node.right, node.left.name);
+  }
 }
 
 function countComplexity(body) {
   let cc = 1;
-  const visit = (node) => {
-    if (!node || typeof node.type !== "string") return;
-    if (DECISION_TYPES.has(node.type)) cc += 1;
-    if (node.type === "LogicalExpression") cc += 1;
-    if (isFunctionNode(node) && node.body !== body) return;
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(visit);
-      else if (value && typeof value.type === "string") visit(value);
-    }
-  };
-  visit(body);
+  walk(body, (node) => {
+    if (isDecisionPoint(node)) cc += 1;
+    return isFunctionNode(node) && node.body !== body;
+  });
   return cc;
+}
+
+function isDecisionPoint(node) {
+  return DECISION_TYPES.has(node.type) || node.type === "LogicalExpression";
 }

@@ -5,6 +5,9 @@ node_modules/
 !.env.example
 coverage/
 dist/
+reports/
+packages/gauntlet/stryker-tmp/
+packages/gauntlet/.stryker-tmp/
 *.log
 npm-debug.log*
 *.tgz

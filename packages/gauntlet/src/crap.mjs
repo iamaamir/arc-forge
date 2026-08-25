@@ -6,7 +6,6 @@ import { listFiles } from "./filelist.mjs";
 import { loadCoverageSummary } from "./coverage.mjs";
 
 export function crapFor(cc, coveragePct) {
-  if (coveragePct >= 100) return cc;
   return cc * cc * (1 - coveragePct / 100) + cc;
 }
 

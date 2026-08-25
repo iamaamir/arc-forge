@@ -11,11 +11,29 @@ const cwd = process.cwd();
 
 test("CRAP equals complexity at full coverage", () => {
   assert.equal(crapFor(4, 100), 4);
+  assert.equal(crapFor(1, 100), 1);
 });
 
 test("CRAP formula matches comp^2*(1-cov)+cc", () => {
   assert.equal(crapFor(4, 50), 12);
   assert.equal(crapFor(2, 0), 6);
+});
+
+test("CRAP exactly at threshold is not a violation", (t) => {
+  const dir = makeProject(t);
+  makeCoverage(dir, 75);
+  process.chdir(dir);
+  const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
+  assert.deepEqual(violations, []);
+});
+
+test("CRAP just above threshold is flagged", (t) => {
+  const dir = makeProject(t);
+  makeCoverage(dir, 70);
+  process.chdir(dir);
+  const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].crap, 9);
 });
 
 function makeProject(t) {
