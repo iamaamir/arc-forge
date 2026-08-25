@@ -9,8 +9,10 @@ Run from the repository root after all unit gates pass:
    — all three gates exit 0 against arc-forge's own root config.
 5. Scratch-project drill (TS): create a temp project with a covered trivial `.ts` function
    and an uncovered complex one; run c8 + `--experimental-strip-types`; confirm
-   `forge-gate check --crap` flags only the complex one, citing original line numbers
-   after an enum + namespace in the file.
+   `forge-gate check --crap` flags only the complex one, citing original line numbers.
+   Files containing enums/namespaces are a separate check: they cannot be scored faithfully
+   (lowering shifts lines; strip-only Node cannot even run them), so confirm `check --crap`
+   rejects them with the documented clean setup error naming the construct.
 6. Scratch-project drill (deps): reproduce the negative fixture; confirm exit 1 names
    both endpoints of the violating import.
 7. Grilling drill: run `/forge-rules` on a scratch repo; confirm option-based questions,

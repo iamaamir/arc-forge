@@ -10,6 +10,7 @@ Gates:
 | CRAP | `--crap` | No function exceeds a Change Risk Anti-Patterns score from cyclomatic complexity × line coverage | CRAP ≤ 8 |
 | Mutation | `--mutation` | StrykerJS mutation score computed from mutant statuses | ≥ 85 |
 | QA | `--qa` | Your system-level suite passes (`qaCommand`) | — |
+| Deps | `--deps` | The import graph respects negotiated `dependencyRules` (see [Dependency rules](#dependency-rules---deps)) | opt-in |
 
 Exit codes: `0` pass, `1` gate failure, `2` setup/configuration problem.
 
@@ -187,8 +188,44 @@ amaro is a WebAssembly build: it installs and runs on Node ≥ 20 even though it
 - Statements inside nested functions count toward the *enclosing* function's span coverage. This is conservative (fail-closed): an untested nested callback drags down the outer function's score instead of hiding behind it.
 - Functions whose line span intersects zero instrumented statements are treated as 100% covered. No statements means nothing to have covered.
 
+### Dependency rules (`--deps`)
+
+Opt-in gate: pass `--deps` explicitly. Bare `forge-gate check` does not run it, so projects that never negotiate rules are unaffected (defaulting it on would exit 1 for every project without a `dependencyRules` block). Negotiate the rules with your team — or with the [`forge-rules`](../../skills/engineering/forge-rules/SKILL.md) skill — never invent them silently.
+
+```json
+{
+  "roots": ["src"],
+  "dependencyRules": {
+    "rules": [
+      { "from": "src/core/**", "allow": [] },
+      { "from": "src/cli/**", "allow": ["src/core/**"], "forbid": ["src/core/private/**"] }
+    ],
+    "allowNodeModules": true,
+    "unmatched": "allow"
+  }
+}
+```
+
+Semantics:
+
+| Construct | Semantics |
+|-----------|-----------|
+| Rule matching | first rule whose `from` glob matches the importing file wins; later rules are never consulted for that file |
+| `forbid` beats everything | a target matching the matched rule's `forbid` is a violation, even if also allowed |
+| Implicit self-allow | targets inside the matched rule's own `from` subtree are always allowed — siblings in a layer import each other freely |
+| Explicit `allow` | globs of targets the matched file may import |
+| No match at all | target is neither forbidden, self, nor allowed → violation ("neither allowed nor forbidden by rule N") |
+| `allowNodeModules` | `true` allows all external packages; an array of globs allows only matching bare specifiers / `@scope/name` paths; `false` denies every external import |
+| Workspace packages | a `node_modules` entry is governed by rules only if its realpath resolves back into repo source (npm-workspaces-style symlink); plain installs under `node_modules` are external |
+| `unmatched` | files matching no `from` pattern: `"deny"` (the default) flags them as violations, `"allow"` skips them |
+| `roots` | top-level config key naming what gets scanned — rules without a scanned population are decorative |
+
+Violations exit 1 and name both endpoints (`src/cli/main.ts -> src/core/engine.ts (violates rule 2)`), where `rule N` is the 1-based index into `rules`. A red deps gate after finalization means renegotiate: fix imports, change rules, or accept and record the violation as debt — never weaken a rule silently to get green.
+
 ## Philosophy
 
 Spec-driven development fails because agents follow plans literally without wisdom. Massive prompt documents fail because LLMs treat them as guidelines ("lost in the middle"). What survives both problems is deterministic: write small acceptance specs up front (agile, not waterfall), then let tools that cannot be argued with decide when code is done.
 
 Fundamentals still matter. If agents generate messes nobody can read and no one understands data structures or architecture anymore, you eventually hit a wall the AI cannot handle either. The gauntlet is how you get speed without the wall.
+
+**Deferred, not forgotten — junior-dev training mode:** the gauntlet's origin story includes new human developers working under the same deterministic gates *without* an AI crutch, months at a time, to learn why structure matters before orchestrating agents. Tooling for that mode (guided onboarding thresholds, per-trainee ratchet tracking) is deliberately deferred; nothing in the current design blocks it.
