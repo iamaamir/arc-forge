@@ -1,0 +1,44 @@
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import process from "node:process";
+import test from "node:test";
+import assert from "node:assert/strict";
+import { defaultConfig, loadConfigAsync } from "../src/config.mjs";
+
+test("defaultConfig has Uncle Bob defaults", () => {
+  assert.equal(defaultConfig.crapThreshold, 8);
+  assert.equal(defaultConfig.mutationScoreThreshold, 85);
+});
+
+test("loadConfigAsync merges defaults without a config file", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "gnt-cfg-"));
+  process.chdir(dir);
+  const config = await loadConfigAsync({ roots: ["lib"] });
+  assert.equal(config.crapThreshold, 8);
+  assert.deepEqual(config.roots, ["lib"]);
+});
+
+test("loadConfigAsync reads gauntlet.config.json overrides", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "gnt-cfg-"));
+  writeFileSync(
+    path.join(dir, "gauntlet.config.json"),
+    JSON.stringify({ crapThreshold: 30, testCommand: "npm t" }),
+  );
+  process.chdir(dir);
+  const config = await loadConfigAsync({});
+  assert.equal(config.crapThreshold, 30);
+  assert.equal(config.testCommand, "npm t");
+  assert.equal(config.mutationScoreThreshold, 85);
+});
+
+test("options override config file values", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "gnt-cfg-"));
+  writeFileSync(
+    path.join(dir, "gauntlet.config.json"),
+    JSON.stringify({ crapThreshold: 30 }),
+  );
+  process.chdir(dir);
+  const config = await loadConfigAsync({ crapThreshold: 12 });
+  assert.equal(config.crapThreshold, 12);
+});
