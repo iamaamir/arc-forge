@@ -21,7 +21,7 @@ test("CRAP formula matches comp^2*(1-cov)+cc", () => {
 
 test("CRAP exactly at threshold is not a violation", (t) => {
   const dir = makeProject(t);
-  makeCoverage(dir, 75);
+  makeCoverage(dir, { covered: 8, total: 8 });
   process.chdir(dir);
   const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
   assert.deepEqual(violations, []);
@@ -29,11 +29,11 @@ test("CRAP exactly at threshold is not a violation", (t) => {
 
 test("CRAP just above threshold is flagged", (t) => {
   const dir = makeProject(t);
-  makeCoverage(dir, 70);
+  makeCoverage(dir, { covered: 5, total: 8 });
   process.chdir(dir);
   const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
   assert.equal(violations.length, 1);
-  assert.equal(violations[0].crap, 9);
+  assert.equal(violations[0].crap, 10);
 });
 
 test("violations are listed worst offenders first", (t) => {
@@ -43,13 +43,41 @@ test("violations are listed worst offenders first", (t) => {
     "function mild(a) {\n  if (a > 1) {\n    if (a > 2) {\n      if (a > 3) return 1;\n    }\n  }\n  return 0;\n}\n"
       + "function worst(a) {\n  if (a > 1) {\n    if (a > 2) {\n      if (a > 3) {\n        if (a > 4) return 2;\n      }\n    }\n  }\n  return 0;\n}\n",
   );
-  makeCoverage(dir, 0);
+  makeCoverage(dir, { covered: 0, total: 18 });
   process.chdir(dir);
   const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
   assert.deepEqual(violations.map((violation) => violation.crap).sort((a, b) => b - a), [30, 20]);
   assert.equal(violations[0].name, "worst");
   assert.equal(violations[0].crap, 30);
   assert.equal(violations[1].name, "mild");
+});
+
+test("functions in the same file get their own coverage", (t) => {
+  const dir = makeProject(t);
+  writeFileSync(
+    path.join(dir, "src", "sample.js"),
+    "function trivial(a) {\n  return a;\n}\n"
+      + "function tangled(a) {\n  if (a > 1) {\n    if (a > 2) {\n      if (a > 3) return 1;\n    }\n  }\n  return 0;\n}\n",
+  );
+  makeCoverage(dir, {
+    covered: 1,
+    total: 6,
+    statements: [[2, 1], [5, 0], [6, 0], [7, 0], [9, 0], [11, 0]],
+  });
+  process.chdir(dir);
+  const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].name, "tangled");
+  assert.equal(violations[0].coverage, 0);
+  assert.equal(violations[0].crap, 20);
+});
+
+test("function span without statements counts as fully covered", (t) => {
+  const dir = makeProject(t);
+  makeCoverage(dir, { covered: 0, total: 0 });
+  process.chdir(dir);
+  const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
+  assert.deepEqual(violations, []);
 });
 
 function makeProject(t) {
@@ -67,20 +95,25 @@ function makeProject(t) {
   return dir;
 }
 
-function makeCoverage(dir, pct, fileName = "sample.js") {
+function makeCoverage(dir, { covered, total, statements, fileName = "sample.js" }) {
+  const pairs = statements ?? Array.from({ length: total }, (_, index) => [index + 1, index < covered ? 1 : 0]);
+  const statementMap = {};
+  const s = {};
+  pairs.forEach(([line, count], index) => {
+    statementMap[index] = { start: { line, column: 0 }, end: { line, column: 1 } };
+    s[index] = count;
+  });
   const coverageDir = path.join(dir, "coverage");
   mkdirSync(coverageDir);
   writeFileSync(
-    path.join(coverageDir, "coverage-summary.json"),
-    JSON.stringify({
-      [path.join(dir, "src", fileName)]: { lines: { pct } },
-    }),
+    path.join(coverageDir, "coverage-final.json"),
+    JSON.stringify({ [path.join(dir, "src", fileName)]: { statementMap, s } }),
   );
 }
 
 test("findCrapViolations flags high-complexity uncovered functions", (t) => {
   const dir = makeProject(t);
-  makeCoverage(dir, 0);
+  makeCoverage(dir, { covered: 0, total: 8 });
   process.chdir(dir);
   const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
   assert.equal(violations.length, 1);
@@ -91,13 +124,13 @@ test("findCrapViolations flags high-complexity uncovered functions", (t) => {
 
 test("findCrapViolations passes clean projects", (t) => {
   const dir = makeProject(t);
-  makeCoverage(dir, 100);
+  makeCoverage(dir, { covered: 8, total: 8 });
   process.chdir(dir);
   const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
   assert.deepEqual(violations, []);
 });
 
-test("missing coverage summary throws SetupError", (t) => {
+test("missing coverage report throws SetupError", (t) => {
   const dir = makeProject(t);
   process.chdir(dir);
   assert.throws(
@@ -106,9 +139,9 @@ test("missing coverage summary throws SetupError", (t) => {
   );
 });
 
-test("file absent from summary is treated as 0% coverage", (t) => {
+test("file absent from report is treated as 0% coverage", (t) => {
   const dir = makeProject(t);
-  makeCoverage(dir, 100, "other.js");
+  makeCoverage(dir, { covered: 8, total: 8, fileName: "other.js" });
   process.chdir(dir);
   const violations = findCrapViolations({ roots: ["src"], crapThreshold: 8 });
   assert.equal(violations.length, 1);
@@ -116,9 +149,35 @@ test("file absent from summary is treated as 0% coverage", (t) => {
   assert.ok(violations[0].crap > 8);
 });
 
+test("ambiguous suffix keys raise SetupError", (t) => {
+  const dir = makeProject(t);
+  const statementMap = {};
+  const s = {};
+  for (let i = 0; i < 8; i++) {
+    statementMap[i] = { start: { line: i + 1, column: 0 }, end: { line: i + 1, column: 1 } };
+    s[i] = 0;
+  }
+  const entry = JSON.stringify({ statementMap, s });
+  const coverageDir = path.join(dir, "coverage");
+  mkdirSync(coverageDir);
+  writeFileSync(
+    path.join(coverageDir, "coverage-final.json"),
+    `{"${path.join("/elsewhere", "projA", "src", "sample.js")}":${entry},"${path.join("/somewhere", "projB", "src", "sample.js")}":${entry}}`,
+  );
+  process.chdir(dir);
+  assert.throws(
+    () => findCrapViolations({ roots: ["src"], crapThreshold: 8 }),
+    (error) => {
+      assert.ok(error instanceof SetupError);
+      assert.match(error.message, /ambiguous coverage keys/);
+      return true;
+    },
+  );
+});
+
 test("ignored directories are not scanned", (t) => {
   const dir = makeProject(t);
-  makeCoverage(dir, 100);
+  makeCoverage(dir, { covered: 8, total: 8 });
   const junkDir = path.join(dir, "src", "node_modules");
   mkdirSync(junkDir);
   writeFileSync(path.join(junkDir, "junk.js"), "function tangled(a) {\n  if (a > 1) {\n    if (a > 2) {\n      if (a > 3) return 1;\n    }\n  }\n  return 0;\n}\n");

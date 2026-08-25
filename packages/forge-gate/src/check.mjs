@@ -1,4 +1,7 @@
+import { statSync } from "node:fs";
+import path from "node:path";
 import { findCrapViolations } from "./crap.mjs";
+import { listFiles } from "./filelist.mjs";
 import { getMutationScore, mutationViolation } from "./mutation.mjs";
 import { runCommand } from "./commands.mjs";
 import { SetupError } from "./errors.mjs";
@@ -53,9 +56,25 @@ function runCommandGate(key, config) {
 }
 
 function runCrapGate(config) {
+  warnIfCoverageStale(config);
   const violations = findCrapViolations(config);
   if (violations.length === 0) return [];
   return ["CRAP gate failed:", ...violations.map((violation) => `  ${violation.message}`)];
+}
+
+function warnIfCoverageStale(config) {
+  try {
+    const coverageMtime = statSync(path.resolve(config.coverageFinalPath ?? "coverage/coverage-final.json")).mtimeMs;
+    const newestSourceMtime = listFiles(config).reduce(
+      (newest, file) => Math.max(newest, statSync(file).mtimeMs),
+      0,
+    );
+    if (newestSourceMtime > coverageMtime) {
+      console.error("warning: coverage data is older than your sources — re-run tests with c8 before trusting CRAP scores");
+    }
+  } catch {
+    // missing coverage or sources are reported by the gate itself
+  }
 }
 
 function runMutationGate(config) {

@@ -19,7 +19,7 @@ export function analyzeFunctions(source) {
   walk(ast, (node) => {
     if (!isFunctionNode(node)) return;
     const found = node.type === "FunctionDeclaration" ? node.id?.name : names.get(node);
-    functions.push({ name: found ?? "(anonymous)", line: node.loc.start.line, cc: countComplexity(node.body) });
+    functions.push({ name: found ?? "(anonymous)", line: node.loc.start.line, endLine: node.loc.end.line, cc: countComplexity(node.body) });
   });
   return functions;
 }

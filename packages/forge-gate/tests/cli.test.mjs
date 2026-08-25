@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -26,9 +26,15 @@ function makeBadProject(t) {
   );
   const coverage = path.join(dir, "coverage");
   mkdirSync(coverage);
+  const statementMap = {};
+  const s = {};
+  for (let i = 0; i < 8; i++) {
+    statementMap[i] = { start: { line: i + 1, column: 0 }, end: { line: i + 1, column: 1 } };
+    s[i] = 0;
+  }
   writeFileSync(
-    path.join(coverage, "coverage-summary.json"),
-    JSON.stringify({ [path.join(src, "bad.js")]: { lines: { pct: 0 } } }),
+    path.join(coverage, "coverage-final.json"),
+    JSON.stringify({ [path.join(src, "bad.js")]: { statementMap, s } }),
   );
   return dir;
 }
@@ -57,4 +63,12 @@ test("cli exits 1 on crap violation with actionable output", (t) => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /tangled/);
   assert.match(result.stderr, /CRAP 20 > 8/);
+});
+
+test("cli warns on stale coverage without changing the exit code", (t) => {
+  const dir = makeBadProject(t);
+  utimesSync(path.join(dir, "coverage", "coverage-final.json"), new Date(Date.now() - 60_000), new Date(Date.now() - 60_000));
+  const result = runCli(["check", "--crap", "--crap=40"], dir);
+  assert.equal(result.status, 0);
+  assert.match(result.stderr, /warning: coverage data is older than your sources/);
 });

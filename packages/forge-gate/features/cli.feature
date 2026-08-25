@@ -27,8 +27,8 @@ Feature: forge-gate check CLI
     Then the exit code is 1
     And stderr shows the failing test output
 
-  Scenario: Missing coverage summary is a setup error
-    Given a project with no coverage/coverage-summary.json
+  Scenario: Missing coverage report is a setup error
+    Given a project with no coverage/coverage-final.json
     When I run "forge-gate check --crap"
     Then the exit code is 2
     And stderr explains how to generate coverage with c8

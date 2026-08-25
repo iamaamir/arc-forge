@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -26,6 +26,25 @@ function writeMutationReport(dir, killed, survived = 0) {
   writeFileSync(
     path.join(reportsDir, "mutation.json"),
     JSON.stringify({ schemaVersion: "1.0", files: { "src/a.mjs": { source: "", mutants } } }),
+  );
+}
+
+function writeCoverageReport(dir, entries) {
+  const files = {};
+  for (const [fileName, covered] of Object.entries(entries)) {
+    const statementMap = {};
+    const s = {};
+    for (let i = 0; i < 8; i++) {
+      statementMap[i] = { start: { line: i + 1, column: 0 }, end: { line: i + 1, column: 1 } };
+      s[i] = i < covered ? 1 : 0;
+    }
+    files[path.join(dir, "src", fileName)] = { statementMap, s };
+  }
+  const coverageDir = path.join(dir, "coverage");
+  mkdirSync(coverageDir, { recursive: true });
+  writeFileSync(
+    path.join(coverageDir, "coverage-final.json"),
+    JSON.stringify(files),
   );
 }
 
@@ -65,7 +84,7 @@ test("requesting every gate in reverse order still runs spec first", async (t) =
   process.chdir(dir);
   const result = await runGatesAsync(["qa", "mutation", "crap"], {});
   assert.equal(result.status, 2);
-  assert.match(result.message, /^no coverage summary at/);
+  assert.match(result.message, /^no coverage data at/);
 });
 
 test("selecting no known gates reports no gates selected", async () => {
@@ -81,12 +100,7 @@ test("crap gate failure message lists header and indented violations", async (t)
     path.join(src, "tangled.js"),
     "function a(x) {\n  if (x > 1) {\n    if (x > 2) {\n      if (x > 3) return 1;\n    }\n  }\n  return 0;\n}\n",
   );
-  const coverageDir = path.join(dir, "coverage");
-  mkdirSync(coverageDir);
-  writeFileSync(
-    path.join(coverageDir, "coverage-summary.json"),
-    JSON.stringify({ [path.join(src, "tangled.js")]: { lines: { pct: 0 } } }),
-  );
+  writeCoverageReport(dir, { "tangled.js": 0 });
   process.chdir(dir);
   const result = await runGatesAsync(["crap"], { roots: ["src"], crapThreshold: 8 });
   assert.equal(result.status, 1);
@@ -104,15 +118,7 @@ test("multiple violations are joined with newlines in order", async (t) => {
   const tangled = "function t(x) {\n  if (x > 1) {\n    if (x > 2) {\n      if (x > 3) return 1;\n    }\n  }\n  return 0;\n}\n";
   writeFileSync(path.join(src, "b_second.mjs"), tangled);
   writeFileSync(path.join(src, "a_first.mjs"), tangled);
-  const coverageDir = path.join(dir, "coverage");
-  mkdirSync(coverageDir);
-  writeFileSync(
-    path.join(coverageDir, "coverage-summary.json"),
-    JSON.stringify({
-      [path.join(src, "a_first.mjs")]: { lines: { pct: 0 } },
-      [path.join(src, "b_second.mjs")]: { lines: { pct: 0 } },
-    }),
-  );
+  writeCoverageReport(dir, { "a_first.mjs": 0, "b_second.mjs": 0 });
   process.chdir(dir);
   const result = await runGatesAsync(["crap"], { roots: ["src"], crapThreshold: 8 });
   const lines = result.message.split("\n");
@@ -151,3 +157,42 @@ test("corrupt mutation report surfaces as a setup error with exit 2", async (t) 
   assert.equal(result.failedGate, null);
   assert.match(result.message, /^invalid mutation report at .*broken\.json/);
 });
+
+test("stale coverage emits a warning without changing the exit code", async (t) => {
+  const dir = makeTempDir(t, "gnt-stale-");
+  const src = path.join(dir, "src");
+  mkdirSync(src);
+  writeFileSync(path.join(src, "clean.js"), "function fine(a) {\n  return a;\n}\n");
+  writeCoverageReport(dir, { "clean.js": 1 });
+  utimesSync(path.join(dir, "coverage", "coverage-final.json"), new Date(Date.now() - 60_000), new Date(Date.now() - 60_000));
+  process.chdir(dir);
+  const warnings = captureConsoleError(t);
+  const result = await runGatesAsync(["crap"], { roots: ["src"], crapThreshold: 8 });
+  assert.equal(result.status, 0);
+  assert.match(warnings.output, /warning: coverage data is older than your sources/);
+});
+
+test("fresh coverage does not emit a staleness warning", async (t) => {
+  const dir = makeTempDir(t, "gnt-fresh-");
+  const src = path.join(dir, "src");
+  mkdirSync(src);
+  writeFileSync(path.join(src, "clean.js"), "function fine(a) {\n  return a;\n}\n");
+  writeCoverageReport(dir, { "clean.js": 1 });
+  process.chdir(dir);
+  const warnings = captureConsoleError(t);
+  const result = await runGatesAsync(["crap"], { roots: ["src"], crapThreshold: 8 });
+  assert.equal(result.status, 0);
+  assert.equal(warnings.output, "");
+});
+
+function captureConsoleError(t) {
+  const original = console.error;
+  const captured = { output: "" };
+  console.error = (...parts) => {
+    captured.output += parts.join(" ");
+  };
+  t.after(() => {
+    console.error = original;
+  });
+  return captured;
+}

@@ -23,7 +23,7 @@ npx forge-gate check --crap=12  # override a threshold for one run
 
 ## 1. Existing JS/TS project
 
-**Step 1 — make sure tests + coverage run.** The CRAP gate reads Istanbul-format coverage. Wire c8 into your test script if you don't have it:
+**Step 1 — make sure tests + coverage run.** The CRAP gate reads Istanbul-format coverage (`coverage/coverage-final.json`) and computes coverage per function, not per file. Wire c8 into your test script if you don't have it:
 
 ```sh
 npm install -D c8
@@ -31,11 +31,11 @@ npm install -D c8
 
 ```json
 "scripts": {
-  "test": "c8 --reporter=json-summary --reporter=text node --test tests/*.test.mjs"
+  "test": "c8 --reporter=json --reporter=text node --test tests/*.test.mjs"
 }
 ```
 
-Any runner works (`jest`, `vitest`, …) as long as c8 (or another Istanbul-compatible tool) produces `coverage/coverage-summary.json`.
+Any runner works (`jest`, `vitest`, …) as long as c8 (or another Istanbul-compatible tool) produces `coverage/coverage-final.json`.
 
 **Step 2 — declare your commands.** Create `forge-gate.config.json` in the project root:
 
@@ -144,7 +144,7 @@ Never skip a gate because tooling is inconvenient — pick an equivalent tool in
   "extensions": [".js", ".mjs", ".cjs", ".jsx"],
   "ignore": ["node_modules", ".git", "dist", "coverage", "reports"],
   "crapThreshold": 8,
-  "coverageSummaryPath": "coverage/coverage-summary.json",
+  "coverageFinalPath": "coverage/coverage-final.json",
   "mutationReportPath": "reports/mutation/mutation.json",
   "mutationScoreThreshold": 85,
   "testCommand": "",
