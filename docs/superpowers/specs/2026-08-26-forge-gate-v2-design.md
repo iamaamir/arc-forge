@@ -120,7 +120,7 @@ Workflow:
 
 1. **Analyze**: inventory directories, entry points, largest fan-in/fan-out files, existing boundary hints (folder structure, package boundaries, README claims). Present findings.
 2. **Propose**: draft 3–7 candidate rules grounded in what the analysis actually found — never generic advice.
-3. **Grill**: challenge the user on each rule and each undecided boundary ("should `util` really import from `core`? what happens when it needs a logger?"). Resolve every branch of the decision tree. Unresolved questions block finalization.
+3. **Grill**: challenge the user on each rule and each undecided boundary. Every question MUST be presented as 2–4 concrete options grounded in the analysis (each with its trade-off stated in one line), plus an explicit "or describe your own" escape hatch — the user either picks one or types their own answer. The agent never asks an open-ended question it could have offered options for, and never presents options without having a recommendation marked. Unresolved questions block finalization.
 4. **Finalize**: write agreed rules into `forge-gate.config.json`, run `forge-gate check --deps` immediately, and loop with the user until the codebase either passes or the user consciously accepts current violations as documented debt.
 5. Record accepted violations in the project's state/decision notes so they are visible, not silent.
 
