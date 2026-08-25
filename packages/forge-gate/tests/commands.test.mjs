@@ -32,3 +32,20 @@ test("runCommand reports success for zero-exit commands", () => {
   assert.equal(result.status, 0);
   assert.equal(result.output, "forge-gate-ok");
 });
+
+test("toCommandResult flags timed-out commands as failures", () => {
+  const result = toCommandResult({ status: null, stdout: "", stderr: "", error: { code: "ETIMEDOUT" } }, 7);
+  assert.deepEqual(result, { status: 1, output: "", error: { code: "ETIMEDOUT" }, timedOut: true, timeoutSeconds: 7 });
+});
+
+test("toCommandResult keeps normal results free of timeout fields", () => {
+  const result = toCommandResult({ status: 3, stdout: "out", stderr: "err" }, 300);
+  assert.deepEqual(result, { status: 3, output: "outerr" });
+});
+
+test("runCommand kills a command that exceeds the configured timeout", () => {
+  const result = runCommand("sleep 5", 1);
+  assert.equal(result.timedOut, true);
+  assert.equal(result.status, 1);
+  assert.equal(result.timeoutSeconds, 1);
+});

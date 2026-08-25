@@ -65,6 +65,14 @@ test("spec gate fails when testCommand exits nonzero", async () => {
   assert.equal(result.message, 'testCommand failed:\n');
 });
 
+test("testCommand killed by timeout fails with an actionable message", async () => {
+  const result = await runGatesAsync(["spec"], { testCommand: "sleep 5", commandTimeoutSeconds: 1 });
+  assert.equal(result.status, 1);
+  assert.equal(result.failedGate, "spec");
+  assert.match(result.message, /timed out after 1s/);
+  assert.match(result.message, /commandTimeoutSeconds/);
+});
+
 test("missing qaCommand is a setup error with actionable message", async () => {
   const result = await runGatesAsync(["qa"], { qaCommand: "" });
   assert.equal(result.status, 2);

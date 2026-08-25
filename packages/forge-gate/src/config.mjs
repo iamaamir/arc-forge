@@ -13,6 +13,7 @@ export const defaultConfig = {
   mutationScoreThreshold: 85,
   testCommand: "",
   qaCommand: "",
+  commandTimeoutSeconds: 300,
 };
 
 export async function loadConfigAsync(options = {}) {

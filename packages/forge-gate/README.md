@@ -148,7 +148,8 @@ Never skip a gate because tooling is inconvenient — pick an equivalent tool in
   "mutationReportPath": "reports/mutation/mutation.json",
   "mutationScoreThreshold": 85,
   "testCommand": "",
-  "qaCommand": ""
+  "qaCommand": "",
+  "commandTimeoutSeconds": 300
 }
 ```
 

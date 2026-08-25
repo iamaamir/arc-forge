@@ -51,8 +51,19 @@ function runCommandGate(key, config) {
   if (!config[key]) {
     throw new SetupError(`${key} is not set. Add it to forge-gate.config.json, e.g. "${key}": "npm test".`);
   }
-  const result = runCommand(config[key]);
-  return result.status === 0 ? [] : [`${key} failed:\n${result.output}`];
+  const result = runCommand(config[key], config.commandTimeoutSeconds);
+  if (result.status === 0) return [];
+  return [commandGateFailure(key, result)];
+}
+
+function commandGateFailure(key, result) {
+  if (result.timedOut) {
+    return `${key} timed out after ${result.timeoutSeconds}s — raise commandTimeoutSeconds in forge-gate.config.json if your suite is slow`;
+  }
+  if (result.error) {
+    return `${key} could not run: ${result.error.message}`;
+  }
+  return `${key} failed:\n${result.output}`;
 }
 
 function runCrapGate(config) {

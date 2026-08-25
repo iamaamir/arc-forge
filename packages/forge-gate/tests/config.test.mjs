@@ -12,6 +12,7 @@ const cwd = process.cwd();
 test("defaultConfig has Uncle Bob defaults", () => {
   assert.equal(defaultConfig.crapThreshold, 8);
   assert.equal(defaultConfig.mutationScoreThreshold, 85);
+  assert.equal(defaultConfig.commandTimeoutSeconds, 300);
 });
 
 function withTempDir(t) {
