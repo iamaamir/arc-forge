@@ -25,6 +25,7 @@ npx skills add iamaamir/arc-forge --list
 ## Skills
 
 - [`adaptive-ai-team-bootstrap`](skills/engineering/adaptive-ai-team-bootstrap/SKILL.md) — drop an adaptive AI product-engineering team into any project with induction, Memory.md, roles, specialist teams, governance, and verification loops.
+- [`forge-rules`](skills/engineering/forge-rules/SKILL.md) — negotiate dependency rules by analyzing the codebase and grilling the user, writing them into forge-gate.config.json for the `--deps` gate.
 - [`gauntlet`](skills/engineering/gauntlet/SKILL.md) — deterministic 5-stage agent pipeline: Gherkin specs → code → CRAP-clean → mutation-harden → QA, each stage ending in an exit-code gate.
 - [`one-thing-function`](skills/engineering/one-thing-function/SKILL.md) — strict function-design rules for new or existing codebases.
 - [`seeded-color-theme`](skills/design/seeded-color-theme/SKILL.md) — CSS-only palette generation from one seed color without tint-ladder slop.
