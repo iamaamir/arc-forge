@@ -118,7 +118,7 @@ Progress is tracked in `gauntlet-state.md` in your repo, so interrupted runs res
 
 ## 3. Non-JS/TS projects
 
-The CLI's static analysis (acorn AST → complexity) only parses JavaScript. For Python, Rust, Go, etc., keep the same stage structure but substitute ecosystem tools and gate manually — the discipline transfers, the binary doesn't.
+The CLI's static analysis parses JavaScript and TypeScript. For Python, Rust, Go, etc., keep the same stage structure but substitute ecosystem tools and gate manually — the discipline transfers, the binary doesn't.
 
 Substitutions that work well:
 
@@ -143,7 +143,7 @@ Never skip a gate because tooling is inconvenient — pick an equivalent tool in
 ```json
 {
   "roots": ["src"],
-  "extensions": [".js", ".mjs", ".cjs"],
+  "extensions": [".js", ".mjs", ".cjs", ".ts", ".mts", ".cts"],
   "ignore": ["node_modules", ".git", "dist", "coverage", "reports"],
   "crapThreshold": 8,
   "coverageFinalPath": "coverage/coverage-final.json",
@@ -159,7 +159,26 @@ CLI flags override config values for a single run: `--crap=N`, `--mutation=N`, `
 
 Note the asymmetry on empty roots: `--roots=` (CLI, empty value) is treated as unset and falls back to defaults, while `"roots": []` in config is a setup error (exit 2). A config that says "no directories" is almost certainly a mistake; an empty flag usually means "not set".
 
-Only `.js`, `.mjs`, and `.cjs` are parsed by default. The parser is plain acorn — it cannot parse JSX or TypeScript. Listing `.jsx`/`.tsx` in `extensions` yields a clean setup error naming the offending file (`cannot parse <path>:<line>:<column>`), not a crash; fix or remove such files until proper JSX/TS support lands.
+Parsing is pluggable per extension. Default extensions: `.js`, `.mjs`, `.cjs`, `.ts`, `.mts`, `.cts`. Listing `.jsx`/`.tsx` in `extensions` yields a clean setup error naming the limitation — JSX support is deferred, not broken.
+
+### TypeScript
+
+`.ts`/`.mts`/`.cts` files are parsed with [amaro](https://github.com/nodejs/amaro) (the SWC-based transformer Node itself ships for type stripping) in transform mode, then analyzed by the same acorn pipeline as JavaScript. Complexity semantics are identical.
+
+Two hard rules:
+
+- **Line fidelity:** CRAP reports cite `file:line` of your original TypeScript. Amaro transform mode reflows code (type-only lines vanish; enum/namespace lowering expands), so forge-gate verifies positions using amaro strip mode as a position oracle and reports original lines. Files containing non-erasable syntax whose lowering shifts line numbers (enums, namespaces) cannot be scored faithfully and fail with a clean setup error naming the construct.
+- **Unsupported syntax:** parameter properties (`constructor(private service)`) and decorators produce a clean setup error naming the syntax and file.
+
+**Coverage pipeline requirement:** for the CRAP gate to join coverage against TypeScript sources, run your tests under `node --experimental-strip-types` with c8:
+
+```sh
+c8 --reporter=json node --experimental-strip-types --test tests/*.test.ts
+```
+
+This produces `coverage-final.json` keyed by the original `.ts` paths. If you compile TypeScript before testing instead, the emitted `.js` files are what gets scored — pick one pipeline and stick to it. If `.ts` paths are missing from coverage data, functions read as 0% covered and the staleness warning will point at the cause.
+
+amaro is a WebAssembly build: it installs and runs on Node ≥ 20 even though its own `engines` field says `>=22`.
 
 **`SwitchCase` complexity semantics:** cyclomatic complexity counts each `case` clause *and* each `default` clause as +1, on top of the function's base complexity of 1. A three-way switch with a default therefore scores 5. This is consistent with how the CRAP gate is tuned against this tool.
 
