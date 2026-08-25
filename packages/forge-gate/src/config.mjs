@@ -17,8 +17,13 @@ export const defaultConfig = {
 };
 
 export async function loadConfigAsync(options = {}) {
-  const fileConfig = readConfigFile();
-  return { ...defaultConfig, ...defaultProfile, ...fileConfig, ...stripEmpty(options) };
+  const merged = { ...defaultConfig, ...defaultProfile, ...readConfigFile(), ...stripEmpty(options) };
+  if (Array.isArray(merged.roots) && merged.roots.length === 0) {
+    throw new SetupError(
+      'roots cannot be empty. Set "roots" to at least one directory in forge-gate.config.json, e.g. "roots": ["src"].',
+    );
+  }
+  return merged;
 }
 
 function readConfigFile() {

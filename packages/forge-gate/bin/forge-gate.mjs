@@ -5,6 +5,8 @@ import { SetupError } from "../src/errors.mjs";
 
 const args = process.argv.slice(2);
 const command = args[0];
+const KNOWN_FLAGS = ["--spec", "--crap", "--mutation", "--qa"];
+const KNOWN_OPTION_PREFIXES = ["--crap=", "--mutation=", "--roots="];
 
 if (command !== "check") {
   printHelp();
@@ -12,10 +14,11 @@ if (command !== "check") {
 } else await runCheck();
 
 async function runCheck() {
-  const gates = ["spec", "crap", "mutation", "qa"].filter((gate) => args.includes(`--${gate}`));
+  if (!validateFlags()) return;
   if (!validateNumericFlags()) return;
+  const gates = KNOWN_FLAGS.filter((flag) => args.includes(flag)).map((flag) => flag.slice(2));
   const options = {
-    roots: getOptionValue("--roots")?.split(",").filter(Boolean),
+    roots: parseRoots(getOptionValue("--roots")),
     crapThreshold: parseNumber(getOptionValue("--crap")),
     mutationScoreThreshold: parseNumber(getOptionValue("--mutation")),
   };
@@ -35,6 +38,20 @@ async function runCheck() {
   }
 }
 
+function validateFlags() {
+  for (const arg of args) {
+    if (!arg.startsWith("--")) continue;
+    if (KNOWN_FLAGS.includes(arg)) continue;
+    if (KNOWN_OPTION_PREFIXES.some((prefix) => arg.startsWith(prefix))) continue;
+    console.error(
+      `forge-gate: unknown flag "${arg}". Known flags: --spec, --crap, --mutation, --qa, --crap=N, --mutation=N, --roots=a,b`,
+    );
+    process.exitCode = 2;
+    return false;
+  }
+  return true;
+}
+
 function validateNumericFlags() {
   for (const name of ["--crap", "--mutation"]) {
     const value = getOptionValue(name);
@@ -51,9 +68,21 @@ function parseNumber(value) {
   return value === undefined ? undefined : Number(value);
 }
 
+function parseRoots(value) {
+  if (value === undefined) return undefined;
+  const roots = value.split(",").filter(Boolean);
+  return roots.length ? roots : undefined;
+}
+
 function getOptionValue(name) {
-  const option = args.find((arg) => arg.startsWith(`${name}=`));
-  return option ? option.slice(name.length + 1) : undefined;
+  const eqForm = args.find((arg) => arg.startsWith(`${name}=`));
+  if (eqForm !== undefined) return eqForm.slice(name.length + 1);
+  const index = args.indexOf(name);
+  if (index === -1) return undefined;
+  const next = args[index + 1];
+  if (next === undefined || next.startsWith("--")) return undefined;
+  if ((name === "--crap" || name === "--mutation") && !Number.isFinite(Number(next))) return undefined;
+  return next;
 }
 
 function printHelp() {
@@ -61,7 +90,8 @@ function printHelp() {
 
 Usage:
   forge-gate check [--spec] [--crap] [--mutation] [--qa]
-                 [--crap=N] [--mutation=N] [--roots=src,lib]
+                 [--crap=N | --crap N] [--mutation=N | --mutation N]
+                 [--roots=src,lib | --roots src,lib]
 
 Runs deterministic quality gates. With no gate flags, runs all gates.
 Exit codes: 0 pass, 1 gate failure, 2 setup error.`);

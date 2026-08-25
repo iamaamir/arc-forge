@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mutationViolation } from "../src/mutation.mjs";
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const cli = path.resolve(testDir, "../bin/forge-gate.mjs");
@@ -38,6 +39,41 @@ function makeBadProject(t) {
   );
   return dir;
 }
+
+test("cli rejects unknown flags without running gates", (t) => {
+  const dir = makeBadProject(t);
+  const result = runCli(["check", "--crape"], dir);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /unknown flag "--crape"/);
+  assert.doesNotMatch(result.stderr, /testCommand|CRAP gate failed|gates passed/);
+});
+
+test("cli treats empty roots flag as unset so defaults apply", (t) => {
+  const dir = makeBadProject(t);
+  const result = runCli(["check", "--crap", "--roots="], dir);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /tangled/);
+});
+
+test("cli exits 2 when config sets roots to an empty array", (t) => {
+  const dir = makeBadProject(t);
+  writeFileSync(path.join(dir, "forge-gate.config.json"), JSON.stringify({ roots: [] }));
+  const result = runCli(["check", "--crap"], dir);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /roots cannot be empty/);
+});
+
+test("cli accepts space-separated option form for numeric flags", (t) => {
+  const dir = makeBadProject(t);
+  const result = runCli(["check", "--crap", "40"], dir);
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /crap gates passed/);
+});
+
+test("mutationViolation rounds score to one decimal", () => {
+  const message = mutationViolation(83.33333333333333, 85);
+  assert.match(message, /mutation score 83\.3 /);
+});
 
 function runCli(args, cwdDir) {
   return spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", cwd: cwdDir });

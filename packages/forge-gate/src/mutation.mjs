@@ -41,5 +41,6 @@ function ratio(part, whole) {
 }
 
 export function mutationViolation(score, threshold) {
-  return `mutation score ${score} is below the required ${threshold} — kill more mutants by asserting on mutant behavior in your tests`;
+  const rounded = Math.round(score * 10) / 10;
+  return `mutation score ${rounded} is below the required ${threshold} — kill more mutants by asserting on mutant behavior in your tests`;
 }
