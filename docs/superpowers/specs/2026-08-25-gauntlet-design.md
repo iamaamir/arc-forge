@@ -116,6 +116,6 @@ The tool validates itself before it validates anyone else.
 
 ## Testing
 
-- Package unit tests (vitest) for CRAP computation, score parsing, profile loading, CLI exit codes.
+- Package unit tests (`node --test`, matching repo conventions) for CRAP computation, score parsing, profile loading, CLI exit codes.
 - Fixture projects under `packages/gauntlet/tests/fixtures/` covering: passing project, high-CRAP project, low-mutation-score project.
 - Repo-level: update README skills/tools lists; `npm run check:skills` must pass; `npm test` must pass.
