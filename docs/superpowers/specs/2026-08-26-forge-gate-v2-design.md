@@ -42,9 +42,26 @@ src/parsers/
   typescript.mjs   # amaro strip → acorn
 ```
 
-- Extensions `.ts`, `.mts`, `.cts` route through the TypeScript parser: strip types with **amaro**, then hand the resulting JavaScript to the existing acorn analyzer.
-- Amaro is chosen because it is the SWC-based stripper Node itself ships for `--experimental-strip-types`, handles erasable plus non-erasable syntax (enums, namespaces), and preserves line positions.
-- Complexity semantics are unchanged: CC counting operates on the stripped AST identically to JS files.
+- Extensions `.ts`, `.mts`, `.cts` route through the TypeScript parser: transform types with **amaro** (transform mode, which is what handles non-erasable syntax), then hand the resulting JavaScript to the existing acorn analyzer.
+- Amaro is chosen because it is the SWC-based transformer Node itself ships for `--experimental-strip-types`.
+- Parameter properties (`constructor(private x)`) and decorators are NOT supported by amaro transform: files containing them fail with a clean SetupError naming the syntax.
+- Amaro ships as a **runtime dependency** of forge-gate with a minimum version supporting transform mode; `engines` compatibility with Node ≥20 must be verified at adoption time.
+- Complexity semantics are unchanged: CC counting operates on the transformed AST identically to JS files.
+
+### Line-fidelity invariant (at-risk)
+
+CRAP reports cite `file:line`. Transform-mode enum/namespace lowering expands code and may shift lines; fidelity is therefore an **at-risk invariant with a fallback**, not a settled property:
+
+- Fixture tests must place function declarations *after* an expanded enum and a namespace and assert each function's parsed position equals its position in the original source (not merely equal line counts).
+- Fallback: if amaro cannot hold line positions for a construct, forge-gate detects the shift (comparing post-transform declaration positions against source) and rejects that file with a SetupError telling the user the file cannot be scored for CRAP.
+
+### Coverage pipeline for TypeScript
+
+The CRAP gate joins complexity against Istanbul `coverage-final.json`. For `.ts` files this requires an executable pipeline:
+
+- Supported pipeline: tests run under `node --experimental-strip-types` (or `tsx`) with `c8`, producing `coverage-final.json` whose keys contain the original `.ts` paths verbatim.
+- End-to-end fixture test: one covered and one uncovered TS function produce correct per-function coverage and CRAP scores through the real c8 output format.
+- If `.ts` paths are absent from coverage data, functions read as 0% covered — the staleness warning plus remediation text ("run your tests under node --experimental-strip-types + c8") must make the cause obvious.
 - Default extensions become `[".js", ".mjs", ".cjs", ".ts", ".mts", ".cts"]`. `.jsx`/`.tsx` remain unsupported with a clean SetupError naming the limitation.
 
 ### Fidelity requirement
@@ -78,17 +95,22 @@ Negotiated rules live in the project's existing `forge-gate.config.json` under `
 
 Semantics:
 
-- `from` / `allow` / `forbid` are glob patterns matched against repo-relative file paths.
-- First matching `from` rule wins. Within it, `forbid` beats `allow`.
-- Imports resolving outside the repo (`node_modules`, built-ins) are ignored unless `allowNodeModules` patterns say otherwise.
-- `unmatched`: `"deny"` (default — any file with no matching rule violates) or `"allow"`.
+- Globs use **picomatch** syntax, anchored at the repo root; negation patterns are not supported in v1.
+- `from` / `allow` / `forbid` match against repo-relative file paths. First matching `from` rule wins. Within it, `forbid` beats `allow`.
+- `allowNodeModules`: `true` (ignore all bare specifiers) or an array of globs matched against the resolved module path (e.g., `"@iamaamir/**"`). Default `true`.
+- **Workspace packages are not external**: a bare specifier that resolves (via node_modules symlink or package.json `imports`) to a directory inside the repo participates in rule matching as its repo-relative path. Cross-package coupling is exactly what dependency rules exist to catch in a monorepo.
+- Resolution rules for relative specifiers: extensionless specifiers resolve by trying configured extensions in order, then directory `index.*`; a relative specifier that cannot be resolved, or that escapes the repo root, is a gate failure with the offending file and specifier named (broken imports fail loudly).
+- Unresolvable non-relative specifiers that do not resolve into the repo are treated as external per `allowNodeModules`.
+- Scanned population: the deps gate scans `roots` filtered by `extensions` (same as CRAP). `unmatched` applies within this population: `"deny"` (default — scanned file with no matching `from` rule violates) or `"allow"`.
+- Structural validation of `dependencyRules` mirrors v1 rigor — SetupError on: `rules` missing or not an array, a rule without `from`, `allow`/`forbid` not arrays of strings, unknown `unmatched` values, invalid glob syntax, and `"rules": []` combined with `"unmatched": "deny"` (denies everything — misconfiguration).
 
 ### Gate mechanics
 
-- `forge-gate check --deps` joins `GATE_ORDER` between `crap` and `mutation`.
-- Import extraction walks each scanned file's AST for static `import` declarations, `export ... from`, and dynamic `import()` calls (dynamic imports resolve literal specifiers only).
-- Relative specifiers resolve to repo-relative paths; violations print `file → imported-file (violates rule N)` with remediation text, worst-first style consistent with other gates.
+- `forge-gate check --deps` runs FIRST in `GATE_ORDER`: it is the cheapest (purely static), and architecture violations should surface before deeper analysis runs.
+- Import extraction walks each scanned file's AST for static `import` declarations, `export ... from`, dynamic `import()` calls with literal specifiers, and `require()` calls with literal specifiers (so `.cjs` files participate fully).
+- Violations print `file → imported-file (violates rule N)` with remediation text, sorted by file with most violations first.
 - No `dependencyRules` key configured → SetupError explaining how to run the `/forge-rules` skill.
+- Non-literal dynamic imports (`import(someVariable)`) are silently skipped — documented non-goal.
 
 ## 3. The `/forge-rules` Skill
 
@@ -120,8 +142,26 @@ Same contract as v1: 0 pass, 1 gate failure, 2 setup error. New setup errors: un
 
 ## Testing
 
-- Parser round-trip tests (line fidelity) for TS fixtures including enums and namespaces.
-- Per-function coverage already proven on JS; add TS equivalents (one complex uncovered function in a covered file must flag).
-- Deps gate: fixture projects covering allow/forbid/unmatched/node-modules cases, first-rule-wins ordering, dynamic imports.
+- Parser round-trip tests asserting function declaration positions survive transform (fixtures place functions after expanded enums/namespaces) — line counts alone are insufficient.
+- Per-function coverage already proven on JS; add TS equivalents (one complex uncovered function in a covered file must flag), including the end-to-end c8 + `--experimental-strip-types` coverage join.
+- Deps gate: fixture projects covering allow/forbid/unmatched/node-modules cases, first-rule-wins ordering, literal dynamic imports, require() extraction, workspace-specifier resolution, and unresolvable-relative failures.
 - forge-rules skill: playbook consistency check (gate commands match CLI), like the gauntlet skill.
-- Dogfood: negotiate real rules for arc-forge itself via the skill process and ship them in the root `forge-gate.config.json`; CI stays green means the gate works.
+
+### Dogfooding acceptance (non-vacuous)
+
+"CI stays green" is necessary but not sufficient. Acceptance requires:
+
+1. A root `forge-gate.config.json` with negotiated rules containing at least one real arc-forge boundary (e.g., `packages/**` independent from `skills/**`, constraints on `scripts/**`).
+2. A CI step running `forge-gate check --deps` (plus CRAP where feasible) at repo root.
+3. A committed negative fixture: a deliberately violating file that demonstrably fails the gate in tests, proving the rules bite.
+4. The forge-rules skill's negotiation transcript summarized into the config's decision notes.
+
+## Implementation Units
+
+Three independently shippable slices, in this order:
+
+1. **TS support** — parser dispatch + amaro + fidelity fixtures + coverage-pipeline test. Acceptance: `.ts` file with an uncovered complex function fails CRAP correctly through a real c8 run; dogfood includes a `.ts` source file.
+2. **Deps gate** — import extraction, rule evaluation, validation, gate wiring. Acceptance: fixture matrix green + violating-fixture negative test.
+3. **forge-rules skill + viz guide** — playbooks, guide doc. Acceptance: skill discovery passes; a real negotiation session on arc-forge produces the root config from unit 2's dogfooding.
+
+Each unit ships separately; TS support must not wait on glob-semantics debates and vice versa.
