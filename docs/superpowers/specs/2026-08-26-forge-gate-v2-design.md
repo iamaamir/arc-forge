@@ -96,7 +96,7 @@ Negotiated rules live in the project's existing `forge-gate.config.json` under `
 Semantics:
 
 - Globs use **picomatch** syntax, anchored at the repo root; negation patterns are not supported in v1.
-- `from` / `allow` / `forbid` match against repo-relative file paths. First matching `from` rule wins. Within it, `forbid` beats `allow`.
+- `from` / `allow` / `forbid` match against repo-relative file paths. First matching `from` rule wins. Within it, `forbid` beats `allow`. A target matching the file's own `from` pattern is implicitly allowed (sibling imports never violate). Targets neither allowed nor forbidden under the matched rule are denied.
 - `allowNodeModules`: `true` (ignore all bare specifiers) or an array of globs matched against the resolved module path (e.g., `"@iamaamir/**"`). Default `true`.
 - **Workspace packages are not external**: a bare specifier that resolves (via node_modules symlink or package.json `imports`) to a directory inside the repo participates in rule matching as its repo-relative path. Cross-package coupling is exactly what dependency rules exist to catch in a monorepo.
 - Resolution rules for relative specifiers: extensionless specifiers resolve by trying configured extensions in order, then directory `index.*`; a relative specifier that cannot be resolved, or that escapes the repo root, is a gate failure with the offending file and specifier named (broken imports fail loudly).

@@ -1,0 +1,12 @@
+{
+  "dependencyRules": {
+    "rules": [
+      { "from": "packages/one-thing-functions/**", "allow": [] },
+      { "from": "packages/forge-gate/**",          "allow": [] },
+      { "from": "scripts/**",                      "allow": [], "forbid": ["packages/*/src/**", "packages/*/bin/**"] },
+      { "from": "docs/**",                         "allow": [] }
+    ],
+    "allowNodeModules": true,
+    "unmatched": "allow"
+  }
+}
