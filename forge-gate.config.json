@@ -1,4 +1,6 @@
 {
+  "roots": ["scripts", "packages", "skills"],
+  "ignore": ["node_modules", ".git", "dist", "coverage", "reports", "fixtures"],
   "dependencyRules": {
     "rules": [
       { "from": "packages/one-thing-functions/**", "allow": [] },
