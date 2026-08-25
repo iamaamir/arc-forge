@@ -131,47 +131,86 @@ async function checkRoleDecisionRights() {
 async function checkPhaseCompletionEvidence() {
   for (const file of allFiles) {
     const rel = relative(root, file)
-    if (!rel.startsWith(".ai-team/logs/") || !rel.endsWith(".md")) continue
-    const text = await readText(file)
-    if (!/^# Phase Completion:/m.test(text) || !/- Status:\s*success/i.test(text)) continue
-    const taskArtifact = artifactValue(text, "Task artifact")
-    const reviewArtifact = artifactValue(text, "Review artifact")
-    const hasWaiver = !isMissingArtifactValue(artifactValue(text, "Waived by"))
-    if (isMissingArtifactValue(taskArtifact) && !hasWaiver) {
-      issues.push(`phase completion missing task artifact evidence in ${rel}`)
-    } else if (looksLikeRelativeArtifactPath(taskArtifact) && !fileExists(path.join(root, taskArtifact))) {
-      issues.push(`phase completion task artifact does not exist in ${rel}: ${taskArtifact}`)
-    }
-    if (isMissingArtifactValue(reviewArtifact)) {
-      issues.push(`phase completion missing review artifact evidence in ${rel}`)
-    } else if (looksLikeRelativeArtifactPath(reviewArtifact) && !fileExists(path.join(root, reviewArtifact))) {
-      issues.push(`phase completion review artifact does not exist in ${rel}: ${reviewArtifact}`)
-    }
-    const verificationArtifact = artifactValue(text, "Verification")
-    if (isMissingArtifactValue(verificationArtifact)) {
-      issues.push(`phase completion missing verification evidence in ${rel}`)
-    }
-    if (looksLikeRelativeArtifactPath(verificationArtifact) && fileExists(path.join(root, verificationArtifact))) {
-      const verificationText = await readText(path.join(root, verificationArtifact))
-      if (hasFailedEvidence(verificationText) && !hasWaiver) {
-        issues.push(`phase completion references failed verification evidence in ${rel}: ${verificationArtifact}`)
-      }
-    }
-    if (/- Review verdict:\s*(block|blocked|blocking|request changes|failed|fail)/i.test(text) && !/- Waived by:\s*\S+/i.test(text)) {
-      issues.push(`phase completion has blocking review verdict without waiver in ${rel}`)
-    }
+    if (!isPhaseLog(rel)) continue
+    await checkPhaseCompletionFile(rel, await readText(file))
   }
+}
+
+function isPhaseLog(rel) {
+  return rel.startsWith(".ai-team/logs/") && rel.endsWith(".md")
+}
+
+function isSuccessfulPhaseCompletion(text) {
+  return /^# Phase Completion:/m.test(text) && /- Status:\s*success/i.test(text)
+}
+
+async function checkPhaseCompletionFile(rel, text) {
+  if (!isSuccessfulPhaseCompletion(text)) return
+  const hasWaiver = !isMissingArtifactValue(artifactValue(text, "Waived by"))
+  await checkTaskArtifactEvidence(rel, text, hasWaiver)
+  await checkReviewArtifactEvidence(rel, text)
+  await checkVerificationArtifactEvidence(rel, text, hasWaiver)
+  if (hasBlockingVerdictWithoutWaiver(text)) {
+    issues.push(`phase completion has blocking review verdict without waiver in ${rel}`)
+  }
+}
+
+async function checkTaskArtifactEvidence(rel, text, hasWaiver) {
+  const taskArtifact = artifactValue(text, "Task artifact")
+  if (isMissingArtifactValue(taskArtifact)) {
+    if (!hasWaiver) issues.push(`phase completion missing task artifact evidence in ${rel}`)
+    return
+  }
+  if (isAbsentRelativeArtifact(root, taskArtifact)) {
+    issues.push(`phase completion task artifact does not exist in ${rel}: ${taskArtifact}`)
+  }
+}
+
+async function checkReviewArtifactEvidence(rel, text) {
+  const reviewArtifact = artifactValue(text, "Review artifact")
+  if (isMissingArtifactValue(reviewArtifact)) {
+    issues.push(`phase completion missing review artifact evidence in ${rel}`)
+    return
+  }
+  if (isAbsentRelativeArtifact(root, reviewArtifact)) {
+    issues.push(`phase completion review artifact does not exist in ${rel}: ${reviewArtifact}`)
+  }
+}
+
+async function checkVerificationArtifactEvidence(rel, text, hasWaiver) {
+  const verificationArtifact = artifactValue(text, "Verification")
+  if (isMissingArtifactValue(verificationArtifact)) {
+    issues.push(`phase completion missing verification evidence in ${rel}`)
+    return
+  }
+  const fullPath = path.join(root, verificationArtifact)
+  if (!looksLikeRelativeArtifactPath(verificationArtifact) || !fileExists(fullPath)) return
+  const verificationText = await readText(fullPath)
+  if (hasFailedEvidence(verificationText) && !hasWaiver) {
+    issues.push(`phase completion references failed verification evidence in ${rel}: ${verificationArtifact}`)
+  }
+}
+
+function isAbsentRelativeArtifact(basePath, value) {
+  return looksLikeRelativeArtifactPath(value) && !fileExists(path.join(basePath, value))
+}
+
+function hasBlockingVerdictWithoutWaiver(text) {
+  return /- Review verdict:\s*(block|blocked|blocking|request changes|failed|fail)/i.test(text) && !/- Waived by:\s*\S+/i.test(text)
 }
 
 async function checkReviewVerificationEvidence() {
   for (const file of allFiles) {
     const rel = relative(root, file)
-    if (!rel.startsWith(".ai-team/reviews/") || !rel.endsWith(".md")) continue
-    const text = await readText(file)
-    if (!reviewHasVerificationEvidence(text)) {
+    if (!isReviewLog(rel)) continue
+    if (!reviewHasVerificationEvidence(await readText(file))) {
       issues.push(`review artifact missing verification evidence in ${rel}`)
     }
   }
+}
+
+function isReviewLog(rel) {
+  return rel.startsWith(".ai-team/reviews/") && rel.endsWith(".md")
 }
 
 function reviewHasVerificationEvidence(text) {
@@ -201,18 +240,27 @@ function hasFailedEvidence(value) {
 async function checkPackageScripts() {
   const packageJsonPath = path.join(root, "package.json")
   if (!fileExists(packageJsonPath)) return
-  let packageJson
-  try {
-    packageJson = JSON.parse(await readText(packageJsonPath))
-  } catch {
-    return
-  }
-  for (const command of Object.values(packageJson.scripts || {})) {
-    if (typeof command !== "string") continue
-    if (command === "next lint" || /(^|&&|\|\|)\s*next lint(\s|$)/.test(command)) {
+  const scripts = await parsePackageScripts(packageJsonPath)
+  for (const command of scripts) {
+    if (isDeprecatedCommand(command)) {
       issues.push("deprecated or interactive verification command in package.json: next lint")
     }
   }
+}
+
+async function parsePackageScripts(packageJsonPath) {
+  try {
+    const packageJson = JSON.parse(await readText(packageJsonPath))
+    return Object.values(packageJson.scripts || {})
+  } catch {
+    return []
+  }
+}
+
+function isDeprecatedCommand(command) {
+  if (typeof command !== "string") return false
+  if (command === "next lint") return true
+  return /(^|&&|\|\|)\s*next lint(\s|$)/.test(command)
 }
 
 async function checkRequiredRuntimeTrace() {

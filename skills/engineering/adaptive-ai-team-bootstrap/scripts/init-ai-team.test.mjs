@@ -87,37 +87,8 @@ test("apply-footprint creates the approved baseline footprint from templates", a
 
   const output = execFileSync(process.execPath, [cli, "--project", root, "--apply-footprint"], { encoding: "utf8" })
 
-  for (const file of [
-    "AGENTS.md",
-    "docs/ai-team/constitution.md",
-    "docs/ai-team/Memory.md",
-    "docs/ai-team/team.md",
-    "docs/ai-team/workflow.md",
-    "docs/ai-team/decision-rights.md",
-    "docs/ai-team/ownership.md",
-    "docs/ai-team/governance.md",
-    "docs/ai-team/specialist-teams.md",
-  ]) {
-    assert.equal(existsSync(path.join(root, file)), true)
-    assert.match(output, new RegExp(`Created ${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`))
-  }
-
-  for (const file of [
-    "docs/ai-team/standards/universal.md",
-    "docs/ai-team/standards/user-style.md",
-    "docs/ai-team/standards/functional-programming.md",
-    "docs/ai-team/standards/function-shape.md",
-    "docs/ai-team/standards/react.md",
-    "docs/ai-team/standards/nextjs.md",
-    "docs/ai-team/standards/rust.md",
-    "docs/ai-team/standards/postgres.md",
-    "docs/ai-team/standards/testing.md",
-    "docs/ai-team/standards/security.md",
-    "docs/ai-team/standards/accessibility.md",
-  ]) {
-    assert.equal(existsSync(path.join(root, file)), true)
-    assert.match(output, new RegExp(`Created ${file.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`))
-  }
+  assertCreatedFiles(root, output, ROOT_FILES)
+  assertCreatedFiles(root, output, STANDARD_FILES)
 
   const gitignore = readFileSync(path.join(root, ".gitignore"), "utf8")
   assert.match(gitignore, /^\.env$/m)
@@ -135,6 +106,43 @@ test("apply-footprint creates the approved baseline footprint from templates", a
   const template = readFileSync(path.join(scriptDir, "..", "templates", "AGENTS.md"), "utf8")
   assert.equal(readFileSync(path.join(root, "AGENTS.md"), "utf8"), template)
 })
+
+const ROOT_FILES = [
+  "AGENTS.md",
+  "docs/ai-team/constitution.md",
+  "docs/ai-team/Memory.md",
+  "docs/ai-team/team.md",
+  "docs/ai-team/workflow.md",
+  "docs/ai-team/decision-rights.md",
+  "docs/ai-team/ownership.md",
+  "docs/ai-team/governance.md",
+  "docs/ai-team/specialist-teams.md",
+]
+
+const STANDARD_FILES = [
+  "docs/ai-team/standards/universal.md",
+  "docs/ai-team/standards/user-style.md",
+  "docs/ai-team/standards/functional-programming.md",
+  "docs/ai-team/standards/function-shape.md",
+  "docs/ai-team/standards/react.md",
+  "docs/ai-team/standards/nextjs.md",
+  "docs/ai-team/standards/rust.md",
+  "docs/ai-team/standards/postgres.md",
+  "docs/ai-team/standards/testing.md",
+  "docs/ai-team/standards/security.md",
+  "docs/ai-team/standards/accessibility.md",
+]
+
+function assertCreatedFiles(root, output, files) {
+  for (const file of files) {
+    assert.equal(existsSync(path.join(root, file)), true)
+    assert.match(output, new RegExp(`Created ${escapeRegExp(file)}`))
+  }
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
 
 test("apply-footprint preserves an existing gitignore", () => {
   const root = tempProject()

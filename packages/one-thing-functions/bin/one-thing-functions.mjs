@@ -34,8 +34,16 @@ function hasFlag(name) {
 }
 
 function runInit() {
-  const roots = getOptionValue("--roots")?.split(",").filter(Boolean) || ["src"];
+  const roots = parseInitRoots();
   const changes = initProject({ roots });
+  reportInit(changes);
+}
+
+function parseInitRoots() {
+  return getOptionValue("--roots")?.split(",").filter(Boolean) || ["src"];
+}
+
+function reportInit(changes) {
   if (changes.length === 0) console.log("one-thing-functions already initialized");
   else console.log(changes.join("\n"));
   console.log("Next: npm install -D one-thing-functions && npm run lint:functions:audit");

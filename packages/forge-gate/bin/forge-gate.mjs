@@ -24,19 +24,27 @@ async function runCheck() {
     mutationScoreThreshold: parseNumber(getOptionValue("--mutation")),
   };
   try {
-    const config = await loadConfigAsync(options);
-    const result = await runGatesAsync(gates.length ? gates : gateOrder(), config);
-    if (result.status !== 0) console.error(result.message);
-    else console.log(result.message);
-    process.exitCode = result.status;
+    await executeGates(gates.length ? gates : gateOrder(), options);
   } catch (error) {
-    if (error instanceof SetupError) {
-      console.error(`forge-gate: ${error.message}`);
-    } else {
-      console.error(`forge-gate crashed: ${error.stack}`);
-    }
-    process.exitCode = 2;
+    reportGateCrash(error);
   }
+}
+
+async function executeGates(gates, options) {
+  const config = await loadConfigAsync(options);
+  const result = await runGatesAsync(gates, config);
+  if (result.status !== 0) console.error(result.message);
+  else console.log(result.message);
+  process.exitCode = result.status;
+}
+
+function reportGateCrash(error) {
+  if (error instanceof SetupError) {
+    console.error(`forge-gate: ${error.message}`);
+  } else {
+    console.error(`forge-gate crashed: ${error.stack}`);
+  }
+  process.exitCode = 2;
 }
 
 function validateFlags() {

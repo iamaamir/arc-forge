@@ -32,13 +32,7 @@ function writeMutationReport(dir, killed, survived = 0) {
 function writeCoverageReport(dir, entries) {
   const files = {};
   for (const [fileName, covered] of Object.entries(entries)) {
-    const statementMap = {};
-    const s = {};
-    for (let i = 0; i < 8; i++) {
-      statementMap[i] = { start: { line: i + 1, column: 0 }, end: { line: i + 1, column: 1 } };
-      s[i] = i < covered ? 1 : 0;
-    }
-    files[path.join(dir, "src", fileName)] = { statementMap, s };
+    files[path.join(dir, "src", fileName)] = fakeCoverageFile(covered);
   }
   const coverageDir = path.join(dir, "coverage");
   mkdirSync(coverageDir, { recursive: true });
@@ -46,6 +40,16 @@ function writeCoverageReport(dir, entries) {
     path.join(coverageDir, "coverage-final.json"),
     JSON.stringify(files),
   );
+}
+
+function fakeCoverageFile(covered) {
+  const statementMap = {};
+  const s = {};
+  for (let i = 0; i < 8; i++) {
+    statementMap[i] = { start: { line: i + 1, column: 0 }, end: { line: i + 1, column: 1 } };
+    s[i] = Number(i < covered);
+  }
+  return { statementMap, s };
 }
 
 test("spec gate passes when testCommand exits zero", async () => {

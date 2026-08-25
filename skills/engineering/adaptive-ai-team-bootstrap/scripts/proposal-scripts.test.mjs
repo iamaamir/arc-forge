@@ -52,36 +52,46 @@ test("new-task writes a dated task template", async () => {
   assert.match(path.basename(filePath), /^\d{4}-\d{2}-\d{2}-reduce-build-flakes\.md$/)
   const content = readFileSync(filePath, "utf8")
   assert.match(content, /^# Reduce Build Flakes/)
-  for (const section of [
-    "Template-Version",
-    "Date",
-    "Goal",
-    "Scope",
-    "Roles",
-    "Risk Class",
-    "Context",
-    "Active Standards",
-    "Verification Plan",
-    "Phase Gate",
-    "Done Definition",
-  ]) {
-    assert.match(content, new RegExp(section))
-  }
-  for (const field of [
-    "- Low, medium, or high:",
-    "- Approval needed:",
-    "- Relevant constitution sections:",
-    "- Relevant memory entries:",
-    "- Relevant files:",
-    "- Commands:",
-    "- Manual checks:",
-    "- Evidence expected:",
-    "- Required outcome:",
-    "- Required evidence:",
-  ]) {
-    assert.match(content, new RegExp(field.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")))
-  }
+  assertContentMatches(content, TASK_TEMPLATE_SECTIONS)
+  assertContentMatches(content, TASK_TEMPLATE_FIELDS)
 })
+
+const TASK_TEMPLATE_SECTIONS = [
+  "Template-Version",
+  "Date",
+  "Goal",
+  "Scope",
+  "Roles",
+  "Risk Class",
+  "Context",
+  "Active Standards",
+  "Verification Plan",
+  "Phase Gate",
+  "Done Definition",
+]
+
+const TASK_TEMPLATE_FIELDS = [
+  "- Low, medium, or high:",
+  "- Approval needed:",
+  "- Relevant constitution sections:",
+  "- Relevant memory entries:",
+  "- Relevant files:",
+  "- Commands:",
+  "- Manual checks:",
+  "- Evidence expected:",
+  "- Required outcome:",
+  "- Required evidence:",
+]
+
+function assertContentMatches(content, patterns) {
+  for (const pattern of patterns) {
+    assert.match(content, new RegExp(escapeRegExp(pattern)))
+  }
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
 
 test("new-task records phase metadata and active standards", async () => {
   const root = tempProject("ai-team-task-metadata-")

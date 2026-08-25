@@ -8,11 +8,16 @@ Requirement: Forge Gate v2 — TypeScript support, dependency-rule enforcement (
 |-------|--------|-------|
 | 1 Specify | passed | user approved 6aa8bd5 |
 | 2 Code | unit 3 done | TS support + deps gate + forge-rules skill shipped; all units complete |
-| 3 Clean | pending | worst CRAP before: tbd |
+| 3 Clean | passed | worst CRAP before: 68 (checkPhaseCompletionEvidence); 19 violations → 0 |
 | 4 Harden | pending | final mutation score: tbd |
 | 5 QA | pending | docs/QA-v2.md |
 
 ## Decisions
+
+- 2026-08-26: Clean stage — CRAP gate driven to 0 without threshold changes. Worst offender `checkPhaseCompletionEvidence` (CRAP 68) split into per-artifact evidence checkers; conditional ladders in `shouldIgnoreProjectPath`/`parseArgs`/lesson-craft components replaced with lookup tables and small helpers.
+- 2026-08-26: Bug fix during Clean (behavior-affecting, logged per dogfooding mandate): `build-static.mjs` called `rm()` without importing it — any rebuild with an existing `dist/` crashed with a ReferenceError swallowed by `.catch(console.error)`. Import added so resetDist works as designed.
+- 2026-08-26: Documented risk / non-goal: lesson-craft reference files (`lesson-components.js`, `build-static.mjs`) have no test harness (browser DOM components; no jsdom/happy-dom dep available). Refactors verified by inspection + syntax check only. A future harness or a headless smoke test would close this gap.
+- 2026-08-26: one-thing-functions arg-count audit on touched files: baseline 17 findings → fewer after refactor (e.g. the 26-line lesson-nav callback is gone). Remaining multi-arg helpers are pre-existing style accepted across the repo; CRAP ≤ 8 is the enforced gate, arg-count is advisory here.
 
 - 2026-08-26: amaro transform mode chosen over strip mode and ts-blank-space (user-selected)
 - 2026-08-26: .tsx deferred; param properties/decorators unsupported with clean SetupError
