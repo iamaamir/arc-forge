@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { loadConfigAsync } from "../src/config.mjs";
 import { runGatesAsync } from "../src/check.mjs";
+import { SetupError } from "../src/errors.mjs";
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -10,6 +11,7 @@ else await runCheck();
 
 async function runCheck() {
   const gates = ["spec", "crap", "mutation", "qa"].filter((gate) => args.includes(`--${gate}`));
+  if (!validateNumericFlags()) return;
   const options = {
     roots: getOptionValue("--roots")?.split(",").filter(Boolean),
     crapThreshold: parseNumber(getOptionValue("--crap")),
@@ -22,9 +24,25 @@ async function runCheck() {
     else console.log(result.message);
     process.exitCode = result.status;
   } catch (error) {
-    console.error(`gauntlet: ${error.message}`);
+    if (error instanceof SetupError) {
+      console.error(`gauntlet: ${error.message}`);
+    } else {
+      console.error(`gauntlet crashed: ${error.stack}`);
+    }
     process.exitCode = 2;
   }
+}
+
+function validateNumericFlags() {
+  for (const name of ["--crap", "--mutation"]) {
+    const value = getOptionValue(name);
+    if (value !== undefined && !Number.isFinite(Number(value))) {
+      console.error(`gauntlet: ${name} expects a number, got "${value}"`);
+      process.exitCode = 2;
+      return false;
+    }
+  }
+  return true;
 }
 
 function parseNumber(value) {

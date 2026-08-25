@@ -19,3 +19,8 @@ test("missing qaCommand is a setup error", async () => {
   assert.equal(result.status, 2);
   assert.match(result.message, /qaCommand/);
 });
+
+test("stops at first failing gate and follows canonical order", async () => {
+  const result = await runGatesAsync(["qa", "spec"], { testCommand: "false", qaCommand: "true" });
+  assert.equal(result.failedGate, "spec");
+});
