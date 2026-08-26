@@ -73,7 +73,7 @@ forge-gate check --qa       # QA suite gate only
 Defaults ship in a profile; projects override via `forge-gate.config.json` or CLI flags:
 
 - `crapThreshold` (default 8)
-- `mutationScoreThreshold` (default 85)
+- `mutationScoreThreshold` (default 95; raised from the original 85 post-adversarial-review — see packages/forge-gate README "Why 95")
 - `testCommand`, `qaCommand`
 - `commandTimeoutSeconds` (default 300)
 

@@ -71,7 +71,9 @@ function countComplexity(body) {
   let cc = 1;
   walk(body, (node) => {
     if (isDecisionPoint(node)) cc += 1;
-    return isFunctionNode(node) && node.body !== body;
+    // A nested function node's own body is never the outer body being walked,
+    // so the stop condition reduces to the function-node check.
+    return isFunctionNode(node);
   });
   return cc;
 }

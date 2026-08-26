@@ -105,6 +105,17 @@ test("decorators fail cleanly naming the syntax and file", () => {
   );
 });
 
+test("decorators with whitespace before their argument list are still rejected naming the syntax", () => {
+  const source = `function d(t: any): any {\n  return t;\n}\n\n@d  ({\n  singleton: true,\n})\nclass Service {}\n`;
+  assert.throws(
+    () => analyzeFunctions(source, { extension: ".ts", filename: "service.ts" }),
+    (error) =>
+      error instanceof SetupError &&
+      error.message ===
+        "service.ts: decorators (@) are not supported — remove them or exclude the file via roots/extensions",
+  );
+});
+
 test("the @ symbol in ordinary code does not trigger the decorator rejection", () => {
   const fns = analyzeFunctions('const email = "a@b.com";\nexport function send(to: string): string {\n  return to;\n}\n', ".ts");
   assert.equal(fns[0].name, "send");

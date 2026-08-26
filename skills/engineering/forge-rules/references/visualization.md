@@ -2,6 +2,8 @@
 
 A guide for the host agent/harness to render a dependency graph from imports analyzed during the forge-rules session. **The choice of rendering mechanism belongs entirely to the host environment** — this guide prescribes data formats and conventions only. No rendering code ships with this skill.
 
+Scope cut, recorded deliberately: we ship the static graph slice — one rendered snapshot per session. An interactive drill-down UML viewer (click module → submodule → code) is deferred; nothing in this guide blocks it, but no tooling for it exists yet.
+
 ## Source data
 
 Edges come from the analysis stage: static `import` / `require` / `export ... from` specifiers resolved to repo-relative paths (the same extraction the deps gate performs). If `forge-gate check --deps` has run, its violation output supplies the violation edges.

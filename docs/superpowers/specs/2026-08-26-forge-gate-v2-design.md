@@ -102,7 +102,7 @@ Semantics:
 - Resolution rules for relative specifiers: extensionless specifiers resolve by trying configured extensions in order, then directory `index.*`; a relative specifier that cannot be resolved, or that escapes the repo root, is a gate failure with the offending file and specifier named (broken imports fail loudly).
 - Unresolvable non-relative specifiers that do not resolve into the repo are treated as external per `allowNodeModules`.
 - Scanned population: the deps gate scans `roots` filtered by `extensions` (same as CRAP). `unmatched` applies within this population: `"deny"` (default — scanned file with no matching `from` rule violates) or `"allow"`.
-- Structural validation of `dependencyRules` mirrors v1 rigor — SetupError on: `rules` missing or not an array, a rule without `from`, `allow`/`forbid` not arrays of strings, unknown `unmatched` values, invalid glob syntax, and `"rules": []` combined with `"unmatched": "deny"` (denies everything — misconfiguration).
+- Structural validation of `dependencyRules` mirrors v1 rigor — SetupError on: `rules` missing or not an array, a rule without `from`, `allow`/`forbid` not arrays of strings, unknown `unmatched` values, empty/non-string glob patterns, and `"rules": []` combined with `"unmatched": "deny"` (denies everything — misconfiguration). Amendment: upfront `makeRe` syntax validation was removed post-hardening — picomatch accepted every pathological pattern probed, so the check was vacuous; compilation happens at match time.
 
 ### Gate mechanics
 
@@ -136,9 +136,13 @@ A reference document (in the forge-rules skill's `references/`) teaching the hos
 - **`.tsx`/JSX**: deferred pending parser decision.
 - **UML viewer tooling**: replaced by the visualization guide above.
 
+## Amendments
+
+- **2026-08-26 (post-adversarial-review):** the interactive drill-down UML viewer (click module → submodule → code) is formally out of scope; v2 ships only the static graph slice via the visualization guide. Deferred, not dropped — recorded here and in `skills/engineering/forge-rules/references/visualization.md`.
+
 ## Error Handling
 
-Same contract as v1: 0 pass, 1 gate failure, 2 setup error. New setup errors: unparseable TS that survives stripping, missing `dependencyRules` when `--deps` requested, invalid glob syntax in rules.
+Same contract as v1: 0 pass, 1 gate failure, 2 setup error. New setup errors: unparseable TS that survives stripping, missing `dependencyRules` when `--deps` requested, empty/non-string glob patterns in rules.
 
 ## Testing
 

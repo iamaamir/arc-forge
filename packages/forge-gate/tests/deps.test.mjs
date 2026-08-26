@@ -199,6 +199,68 @@ test("unknown #specifiers fall through to external handling", async (t) => {
   assert.equal(result.status, 0);
 });
 
+test("allowNodeModules pattern can match the resolved node_modules path of a subpath import", async (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), "gnt-deps-nmpath-"));
+  const files = {
+    "node_modules/left-pad/package.json": '{"name":"left-pad","main":"index.js"}\n',
+    "node_modules/left-pad/index.js": "module.exports = 1;\n",
+    "src/a.js": 'import s from "left-pad/thing";\n',
+  };
+  for (const [relPath, content] of Object.entries(files)) {
+    const filePath = path.join(dir, relPath);
+    mkdirSync(path.dirname(filePath), { recursive: true });
+    writeFileSync(filePath, content);
+  }
+  t.after(() => {
+    process.chdir(cwd);
+    rmSync(dir, { recursive: true, force: true });
+  });
+  process.chdir(dir);
+  // The subpath specifier ("left-pad/thing") does not match the bare-name
+  // glob, so only the resolved node_modules-relative path arm
+  // ("node_modules/left-pad") can allow this import.
+  const result = await runGatesAsync(
+    ["deps"],
+    await loadConfigAsync(
+      RULES([{ from: "src/**", allow: [] }], { allowNodeModules: ["node_modules/left-pad"] }),
+    ),
+  );
+  assert.equal(result.status, 0);
+});
+
+test("TypeScript files containing enums are scanned by the deps gate", async (t) => {
+  const result = await runDeps(
+    t,
+    {
+      "src/main.ts": 'import { Kind } from "./enums";\nexport function pick(k: Kind): string { return Kind[k] ?? ""; }\n',
+      "src/enums.ts": "export enum Kind { Good, Bad }\n",
+    },
+    RULES([{ from: "src/**", allow: [] }]),
+  );
+  assert.equal(result.status, 0);
+});
+
+test("workspace package without a package.json resolves via its directory index", async (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), "gnt-deps-nopkg-"));
+  mkdirSync(path.join(dir, "lib", "nopkg"), { recursive: true });
+  writeFileSync(path.join(dir, "lib", "nopkg", "index.js"), "export default 1;\n");
+  mkdirSync(path.join(dir, "src"), { recursive: true });
+  writeFileSync(path.join(dir, "src", "main.js"), 'import n from "nopkg";\n');
+  mkdirSync(path.join(dir, "node_modules"), { recursive: true });
+  symlinkSync(path.join(dir, "lib", "nopkg"), path.join(dir, "node_modules", "nopkg"), "dir");
+  t.after(() => {
+    process.chdir(cwd);
+    rmSync(dir, { recursive: true, force: true });
+  });
+  process.chdir(dir);
+  const result = await runGatesAsync(
+    ["deps"],
+    await loadConfigAsync(RULES([{ from: "src/**", allow: [], forbid: ["lib/nopkg/**"] }])),
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.message, /src\/main\.js -> lib\/nopkg\/index\.js \(violates rule 1\)/);
+});
+
 test("plain node_modules installs inside the repo are external, not workspace targets", async (t) => {
   const dir = mkdtempSync(path.join(tmpdir(), "gnt-deps-inst-"));
   const files = {

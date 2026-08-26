@@ -6,7 +6,7 @@ export default {
   crapThreshold: 8,
   coverageFinalPath: "coverage/coverage-final.json",
   mutationReportPath: "reports/mutation/mutation.json",
-  mutationScoreThreshold: 85,
+  mutationScoreThreshold: 95,
   testCommand: "",
   qaCommand: "",
   commandTimeoutSeconds: 300,

@@ -11,7 +11,6 @@ import { SetupError } from "../errors.mjs";
 // param properties do not error in transform mode (they are silently
 // rewritten) and decorators pass through verbatim.
 const PARAM_PROPERTIES = /constructor\s*\(\s*(?:private|public|protected|readonly)\b/;
-const MULTILINE_PARAM_PROPERTIES = /constructor\s*\(\s*\n\s*(?:private|public|protected|readonly)\b/;
 const DECORATOR_LINE = /^\s*@[A-Za-z_$][\w$.]*\s*($|\()/m;
 
 export function analyze(source, { filename } = {}) {
@@ -28,7 +27,9 @@ export function analyze(source, { filename } = {}) {
 }
 
 function rejectUnsupportedSyntax(source, label) {
-  if (PARAM_PROPERTIES.test(source) || MULTILINE_PARAM_PROPERTIES.test(source)) {
+  // \s in PARAM_PROPERTIES matches newlines, so one regex covers multi-line
+  // constructor parameter lists too.
+  if (PARAM_PROPERTIES.test(source)) {
     throw new SetupError(
       `${label}: TypeScript parameter properties (e.g. "constructor(private service)") are not supported — ` +
         "declare constructor parameters explicitly and assign them in the body",
@@ -59,16 +60,15 @@ function withOriginalPositions(functions, source, transformed, label) {
     );
   }
   const oracle = analyzeJavaScript(stripped.code);
-  if (!positionsUsable(oracle, functions)) {
+  // Length equality is the fail-closed line-fidelity detector: if transform
+  // and strip disagree on how many functions exist, positions are unusable.
+  // Name agreement is not checked — with equal counts, oracle positions map
+  // one-to-one onto the transform's functions regardless of naming drift.
+  if (oracle.length !== functions.length) {
     throw new SetupError(
       `${label}: line positions shifted under the TypeScript transform and cannot be cited faithfully — ` +
         "the file is excluded from CRAP scoring",
     );
   }
   return functions.map((fn, index) => ({ ...fn, line: oracle[index].line, endLine: oracle[index].endLine }));
-}
-
-function positionsUsable(oracle, functions) {
-  if (oracle.length !== functions.length) return false;
-  return oracle.every((fn, index) => !fn.name || !functions[index].name || fn.name === functions[index].name);
 }

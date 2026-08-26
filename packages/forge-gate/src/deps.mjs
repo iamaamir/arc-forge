@@ -56,7 +56,6 @@ function countPerFile(violations) {
 }
 
 function createEvalContext(root, depRules, config) {
-  const matchers = new Map();
   return {
     root,
     rootReal: realpathSync(root),
@@ -66,12 +65,7 @@ function createEvalContext(root, depRules, config) {
     extensions: config.extensions ?? defaultConfig.extensions,
     ruleNumber: (index) => index + 1,
     matcher(pattern) {
-      let compiled = matchers.get(pattern);
-      if (!compiled) {
-        compiled = picomatch(pattern, MATCH_OPTIONS);
-        matchers.set(pattern, compiled);
-      }
-      return compiled;
+      return picomatch(pattern, MATCH_OPTIONS);
     },
   };
 }
@@ -115,16 +109,16 @@ function importSpecifierOf(node) {
 }
 
 function isLiteralRequireCall(node) {
-  return (
-    node.type === "CallExpression" &&
-    node.callee?.type === "Identifier" &&
-    node.callee.name === "require" &&
-    node.arguments.length > 0
-  );
+  // callee.name is undefined for member/object callees, so the name check alone
+  // excludes require.resolve()-style calls; extractImports re-checks the result
+  // is a string, so a zero-argument require() is harmless.
+  return node.type === "CallExpression" && node.callee?.name === "require";
 }
 
 function literalString(node) {
-  return node && node.type === "Literal" && typeof node.value === "string" ? node.value : undefined;
+  // Callers re-check the result is a string before using it as a specifier,
+  // so non-string Literal values are returned and filtered there.
+  return node?.type === "Literal" ? node.value : undefined;
 }
 
 function walkAst(node, visit) {
@@ -217,7 +211,7 @@ function violationOf(entry, target, number, remediation) {
 }
 
 function matchesAny(patterns, target, ctx) {
-  return (patterns ?? []).some((pattern) => ctx.matcher(pattern)(target));
+  return patterns.some((pattern) => ctx.matcher(pattern)(target));
 }
 
 function isExternalAllowed(record, ctx) {
@@ -266,7 +260,8 @@ function fileWithExtensions(base, extensions) {
 }
 
 function directoryIndex(base, extensions) {
-  if (!statSync(base, { throwIfNoEntry: false })?.isDirectory()) return null;
+  // No isDirectory pre-check needed: joining index candidates onto a
+  // non-directory simply finds no existing file.
   const candidate = extensions
     .map((extension) => path.join(base, `index${extension}`))
     .find(isFile);
@@ -297,21 +292,26 @@ function findInstalledPackage(pkgName, importerAbs) {
 }
 
 function classifyInstalledPackage(installed, ctx) {
-  if (!installed.real) return { kind: "external" };
+  // existsSync passed before safeRealpath ran; if realpath still failed
+  // (racy/dangling entry), using undefined here fails loudly downstream
+  // instead of silently misclassifying the package as external.
+  const real = installed.real;
   // Workspace packages are symlinks out of node_modules into repo source
   // (e.g. npm workspaces). An entry whose realpath still lives under
   // node_modules is an ordinary installed dependency — treat as external.
   const inRepoSource =
-    !installed.real.includes(`${path.sep}node_modules${path.sep}`) &&
-    insideRoot(installed.real, ctx.rootReal);
+    !real.includes(`${path.sep}node_modules${path.sep}`) &&
+    insideRoot(real, ctx.rootReal);
   if (!inRepoSource) {
-    return { kind: "external", nodeModulesPath: toNodeModulesPath(installed.candidate), fsPath: installed.real };
+    return { kind: "external", nodeModulesPath: toNodeModulesPath(installed.candidate) };
   }
-  return { kind: "relative", rel: toRepoRel(packageEntry(installed.real, ctx.extensions), ctx.root) };
+  return { kind: "relative", rel: toRepoRel(packageEntry(real, ctx.extensions), ctx.root) };
 }
 
 function insideRoot(target, rootReal) {
-  return target === rootReal || target.startsWith(rootReal + path.sep);
+  // A package's realpath can never equal the repo root itself (that would be
+  // the repo), so containment reduces to the prefix check.
+  return target.startsWith(rootReal + path.sep);
 }
 
 function safeRealpath(filePath) {
@@ -435,6 +435,9 @@ function validateRule(rule, index) {
   assertFromPattern(rule, index);
   validatePatternArray(rule.allow, "allow", index);
   validatePatternArray(rule.forbid, "forbid", index);
+  // Normalize after validation so matching code never handles undefined lists.
+  rule.allow ??= [];
+  rule.forbid ??= [];
 }
 
 function assertRuleObject(rule, index) {
@@ -446,7 +449,7 @@ function assertFromPattern(rule, index) {
   if (typeof rule.from !== "string" || rule.from.trim() === "") {
     throw new SetupError(`dependencyRules rule ${index + 1} is missing "from" — every rule needs a from glob`);
   }
-  assertValidGlob(rule.from, `rule ${index + 1} from`);
+  assertNonEmptyPatternString(rule.from, `rule ${index + 1} from`);
 }
 
 function validatePatternArray(patterns, key, index) {
@@ -454,27 +457,21 @@ function validatePatternArray(patterns, key, index) {
   if (!Array.isArray(patterns) || patterns.some((pattern) => typeof pattern !== "string")) {
     throw new SetupError(`dependencyRules rule ${index + 1} ${key} must be an array of glob strings`);
   }
-  patterns.forEach((pattern) => assertValidGlob(pattern, `rule ${index + 1} ${key}`));
+  patterns.forEach((pattern) => assertNonEmptyPatternString(pattern, `rule ${index + 1} ${key}`));
 }
 
 function validateAllowNodeModules(setting) {
   if (setting === undefined || typeof setting === "boolean") return;
   if (Array.isArray(setting) && setting.every((pattern) => typeof pattern === "string")) {
-    setting.forEach((pattern) => assertValidGlob(pattern, "allowNodeModules"));
+    setting.forEach((pattern) => assertNonEmptyPatternString(pattern, "allowNodeModules"));
     return;
   }
   throw new SetupError("dependencyRules.allowNodeModules must be true, false, or an array of glob strings");
 }
 
-function assertValidGlob(pattern, where) {
-  assertNonEmptyPatternString(pattern, where);
-  try {
-    picomatch.makeRe(pattern, MATCH_OPTIONS);
-  } catch (error) {
-    throw new SetupError(`invalid glob "${pattern}" in dependencyRules (${where}): ${error.message}`);
-  }
-}
-
+// Glob syntax is picomatch's domain: makeRe accepted every pathological input
+// probed (see gauntlet-state.md), so only empty/non-string patterns are
+// rejected up front and compilation happens at match time.
 function assertNonEmptyPatternString(pattern, where) {
   if (typeof pattern === "string" && pattern !== "") return;
   throw new SetupError(

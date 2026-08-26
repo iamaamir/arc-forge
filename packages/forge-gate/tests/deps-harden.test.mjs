@@ -687,6 +687,32 @@ test("subpath imports degrade to external without any package.json up-tree", asy
   assert.equal(result.status, 0, result.message);
 });
 
+test("subpath import with no imports field in the nearest package.json degrades to external", async (t) => {
+  const result = await runDeps(
+    t,
+    {
+      "package.json": '{"name":"proj","type":"module"}\n',
+      "src/a.js": 'import x from "#private/thing";\n',
+    },
+    RULES([{ from: "src/**", allow: [] }]),
+  );
+  assert.equal(result.status, 0, result.message);
+});
+
+test("array-valued pattern-import targets degrade to external (documented non-goal)", async (t) => {
+  const result = await runDeps(
+    t,
+    {
+      "package.json": '{"name":"proj","type":"module","imports":{"#z/*":["./src/*.js"]}}\n',
+      "src/a.js": 'import x from "#z/thing";\n',
+      "src/thing.js": "export default 1;\n",
+    },
+    RULES([{ from: "src/**", allow: [] }]),
+  );
+  assert.equal(result.status, 0, result.message);
+});
+
+
 test("missing dependencyRules produces the exact guidance message", async (t) => {
   const result = await runDeps(t, { "src/a.js": "export default 1;\n" }, {});
   assert.equal(result.status, 2);

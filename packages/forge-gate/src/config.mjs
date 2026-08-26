@@ -7,17 +7,15 @@ export const defaultConfig = { ...defaultProfile };
 
 export async function loadConfigAsync(options = {}) {
   const merged = { ...defaultConfig, ...readConfigFile(), ...stripEmpty(options) };
-  if (merged.roots !== undefined) {
-    const valid =
-      Array.isArray(merged.roots) && merged.roots.every((root) => typeof root === "string");
-    if (!valid) {
-      throw new SetupError('roots must be an array of directories, e.g. "roots": ["src"].');
-    }
-    if (merged.roots.length === 0) {
-      throw new SetupError(
-        'roots cannot be empty. Set "roots" to at least one directory in forge-gate.config.json, e.g. "roots": ["src"].',
-      );
-    }
+  // defaultConfig always provides roots, so validation is unconditional.
+  const valid = Array.isArray(merged.roots) && merged.roots.every((root) => typeof root === "string");
+  if (!valid) {
+    throw new SetupError('roots must be an array of directories, e.g. "roots": ["src"].');
+  }
+  if (merged.roots.length === 0) {
+    throw new SetupError(
+      'roots cannot be empty. Set "roots" to at least one directory in forge-gate.config.json, e.g. "roots": ["src"].',
+    );
   }
   return merged;
 }

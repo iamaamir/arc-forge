@@ -11,7 +11,7 @@ const cwd = process.cwd();
 
 test("defaultConfig has Uncle Bob defaults", () => {
   assert.equal(defaultConfig.crapThreshold, 8);
-  assert.equal(defaultConfig.mutationScoreThreshold, 85);
+  assert.equal(defaultConfig.mutationScoreThreshold, 95);
   assert.equal(defaultConfig.commandTimeoutSeconds, 300);
 });
 
@@ -63,7 +63,7 @@ test("loadConfigAsync reads forge-gate.config.json overrides", async (t) => {
   const config = await loadConfigAsync({});
   assert.equal(config.crapThreshold, 30);
   assert.equal(config.testCommand, "npm t");
-  assert.equal(config.mutationScoreThreshold, 85);
+  assert.equal(config.mutationScoreThreshold, 95);
 });
 
 test("options override config file values", async (t) => {

@@ -15,13 +15,15 @@ Deterministic gates over prompt steering. Agents treat prose as guidelines but c
 | 2 | Code | implementation + unit tests | `forge-gate check --spec` |
 | 3 | Clean | refactored code | `forge-gate check --crap` |
 | 4 | Harden | mutation-hardened tests | `forge-gate check --mutation` |
-| 5 | QA | verified system behavior | `forge-gate check --qa` |
+| 5 | QA | executable QA script wired as `qaCommand` | `forge-gate check --qa` |
 
 Read the reference playbook for the current stage before acting. Only that playbook — keep context small.
 
 ## Execution model
 
 If subagents are available, dispatch a fresh subagent per stage with only: the requirement, the state artifact, and that stage's playbook. Otherwise run stages sequentially yourself, re-reading each playbook when entering it.
+
+Independent stories may run their Code stage concurrently in fresh subagents (parallel coders); each story's Clean/Harden/QA stages then converge on its own diff. Never parallelize the stages of one story.
 
 ## State tracking
 

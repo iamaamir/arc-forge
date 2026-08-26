@@ -15,8 +15,8 @@ Feature: forge-gate check CLI
     And stderr suggests raising the threshold or refactoring
 
   Scenario: Mutation gate fails below threshold score
-    Given a Stryker report at reports/mutation/mutation.json with mutation score 60
-    And a configured mutation score threshold of 85
+    Given a Stryker report at reports/mutation/mutation.json with mutation score 92
+    And a configured mutation score threshold of 95
     When I run "forge-gate check --mutation"
     Then the exit code is 1
     And stderr shows the score and the required threshold

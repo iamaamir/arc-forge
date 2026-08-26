@@ -8,7 +8,7 @@ Gates:
 |------|------|----------------|-------------------|
 | Spec | `--spec` | Your project's tests pass (`testCommand`) | — |
 | CRAP | `--crap` | No function exceeds a Change Risk Anti-Patterns score from cyclomatic complexity × line coverage | CRAP ≤ 8 |
-| Mutation | `--mutation` | StrykerJS mutation score computed from mutant statuses | ≥ 85 |
+| Mutation | `--mutation` | StrykerJS mutation score computed from mutant statuses | ≥ 95 |
 | QA | `--qa` | Your system-level suite passes (`qaCommand`) | — |
 | Deps | `--deps` | The import graph respects negotiated `dependencyRules` (see [Dependency rules](#dependency-rules---deps)) | opt-in |
 
@@ -84,7 +84,9 @@ In `stryker.config.json`:
 
 Run `npx stryker run`, which writes `reports/mutation/mutation.json`. Then loop: for each surviving mutant, ask *why did no test catch this behavior change?* and add an assertion that kills it — until `forge-gate check --mutation` exits 0.
 
-**Mutation ratchet:** a legacy or untested codebase may not hit score ≥ 85 immediately. Start with a lowered threshold (e.g. `"mutationScoreThreshold": 50`–`70`) and ratchet upward toward 85 — and ideally beyond. Every surviving mutant should be either killed by a test or explicitly documented as an equivalent mutant; never just lower the threshold to make it go away.
+**Why 95, and why not 100:** the source workflow demands a merciless hardener — mutation testing with effectively total coverage, every surviving mutant killed or proven equivalent. The default threshold is 95 rather than 100 because provably equivalent mutants genuinely exist (our own dogfood run documented 87 of them at a 92.32% raw score before hardening). Up to ~95 the loop is "kill more mutants"; beyond it, every remaining survivor must be individually argued equivalent or removed as dead code — which is exactly the discipline the ratchet below enforces.
+
+**Mutation ratchet:** a legacy or untested codebase may not hit score ≥ 95 immediately. Start with a lowered threshold (e.g. `"mutationScoreThreshold": 50`–`70`) and ratchet upward toward 95 — and ideally beyond, toward kill-or-prove-equivalent on every survivor. Every surviving mutant should be either killed by a test, deleted as dead code, or explicitly documented as an equivalent mutant; never just lower the threshold to make it go away.
 
 **Adopting incrementally:** legacy code will not pass CRAP ≤ 8 on day one. Start with a raised threshold (`"crapThreshold": 30`) and ratchet it down over time. Raising thresholds should be a deliberate decision, not a reflex.
 
@@ -109,7 +111,7 @@ Scaffold the config early so gates are runnable from the first commit:
 ```json
 {
   "crapThreshold": 8,
-  "mutationScoreThreshold": 85,
+  "mutationScoreThreshold": 95,
   "testCommand": "npm test",
   "qaCommand": ""
 }
@@ -132,7 +134,7 @@ Substitutions that work well:
 Workflow per stage:
 
 1. Run the substituted analyzer/mutator after each coding batch.
-2. Apply the same thresholds as defaults: complexity-derived CRAP ≤ 8, mutation score ≥ 85.
+2. Apply the same thresholds as defaults: complexity-derived CRAP ≤ 8, mutation score ≥ 95.
 3. Record every command you ran and its result in `gauntlet-state.md` — that artifact is your audit trail since the CLI can't compute these gates for you.
 
 Never skip a gate because tooling is inconvenient — pick an equivalent tool instead.
@@ -149,7 +151,7 @@ Never skip a gate because tooling is inconvenient — pick an equivalent tool in
   "crapThreshold": 8,
   "coverageFinalPath": "coverage/coverage-final.json",
   "mutationReportPath": "reports/mutation/mutation.json",
-  "mutationScoreThreshold": 85,
+  "mutationScoreThreshold": 95,
   "testCommand": "",
   "qaCommand": "",
   "commandTimeoutSeconds": 300
@@ -227,5 +229,7 @@ Violations exit 1 and name both endpoints (`src/cli/main.ts -> src/core/engine.t
 Spec-driven development fails because agents follow plans literally without wisdom. Massive prompt documents fail because LLMs treat them as guidelines ("lost in the middle"). What survives both problems is deterministic: write small acceptance specs up front (agile, not waterfall), then let tools that cannot be argued with decide when code is done.
 
 Fundamentals still matter. If agents generate messes nobody can read and no one understands data structures or architecture anymore, you eventually hit a wall the AI cannot handle either. The gauntlet is how you get speed without the wall.
+
+On spec lifetimes: `.feature` files persist deliberately — they are executable acceptance criteria, kept green by `--spec` on every run. Prose QA documents are ephemeral by contrast: they exist to be converted into an executable `qaCommand`, after which the script, not the prose, is the lasting artifact.
 
 **Deferred, not forgotten — junior-dev training mode:** the gauntlet's origin story includes new human developers working under the same deterministic gates *without* an AI crutch, months at a time, to learn why structure matters before orchestrating agents. Tooling for that mode (guided onboarding thresholds, per-trainee ratchet tracking) is deliberately deferred; nothing in the current design blocks it.

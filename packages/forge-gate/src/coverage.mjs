@@ -38,16 +38,11 @@ function findKey(exactKeys, keys, filePath) {
 }
 
 function suffixCandidates(keys, filePath) {
-  const forms = new Set(
-    [filePath.replace(/^\.\//, ""), path.relative(process.cwd(), canonicalize(filePath))].filter(
-      (rel) => rel && !rel.startsWith(".."),
-    ),
-  );
+  const rel = path.relative(process.cwd(), canonicalize(filePath));
+  if (!rel || rel.startsWith("..")) return [];
   const found = new Set();
-  for (const rel of forms) {
-    for (const key of keys) {
-      if (key.endsWith(path.sep + rel)) found.add(key);
-    }
+  for (const key of keys) {
+    if (key.endsWith(path.sep + rel)) found.add(key);
   }
   return [...found];
 }
