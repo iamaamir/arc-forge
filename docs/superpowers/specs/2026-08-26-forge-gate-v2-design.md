@@ -6,7 +6,7 @@ Branch: continues work merged from PR #1 (`gauntlet` branch).
 
 ## Summary
 
-Three additions to the forge-gate ecosystem, shaped by an adversarial review cycle:
+Four additions to the forge-gate ecosystem:
 
 1. **TypeScript support** in forge-gate's CRAP gate via a pluggable per-extension parser.
 2. **Dependency-rule enforcement**: a new `--deps` gate whose rules are negotiated with the user by a standalone skill, never hardcoded.
@@ -177,24 +177,37 @@ One entry point: a user points the agent at `/forge-gate`; the skill detects pro
 
 ### Routing table
 
-| Detected state | Route |
-|---|---|
-| No forge-gate.config.json | **Adopt**: install/wire forge-gate + c8 coverage into test script (+ Stryker when mutation gating is wanted), scaffold config with sensible roots/extensions, wire `testCommand`, then route into negotiation |
-| Config exists, no `dependencyRules` | Negotiate via the forge-rules skill's grilling protocol |
-| Fully wired | **Enforce**: run all gates, loop-fix red ones (respecting stage ownership: complexity → refactor, survivors → tests, rule breaks → negotiate or fix imports), report accepted debt |
-| User is building a new feature/story | Hand off to the gauntlet pipeline skill |
+Rows are evaluated IN ORDER; first match wins:
+
+| Priority | Detected state (checklist) | Route |
+|---|---|---|
+| 1 | User's intent is building a new feature/story | Hand off to the gauntlet pipeline skill (it inherits whatever wiring exists) |
+| 2 | No forge-gate.config.json, or config missing any layer (`roots`/extensions, `testCommand`, coverage wiring) | **Adopt**: route to the shallowest incomplete layer — install/wire forge-gate + c8 (+ Stryker when wanted), scaffold config, wire `testCommand` — then continue down the checklist |
+| 3 | Config complete, no `dependencyRules` | Negotiate via the forge-rules skill's grilling protocol |
+| 4 | Fully wired | **Enforce** |
 
 ### Adoption principles
 
-- The agent does the wiring; the user answers questions, never reads docs
-- Nothing is configured without being exercised: after setup, run every wired gate once end-to-end before declaring adoption done
-- Setup choices are offered as option-based questions (same protocol as forge-rules grilling): e.g., "mutation gating now, or later?"
-- Non-JS projects: adopt what applies (deps gate, command gates), substitute per package README §3, say plainly what cannot be gated
+- The agent does the wiring; the user answers questions, never reads docs. "Sensible defaults" for roots/extensions are heuristics owned by the adopt playbook (src/, workspace globs), not spec-defined values.
+- Nothing is configured without being exercised: adoption completes when every wired gate has been run end-to-end AND baselines are recorded. On legacy repos the first runs WILL be red (CRAP ≤ 8 / mutation ≥ 95 don't hold on day one): record raised starting thresholds or an explicit accepted-violations list in decision notes, plus the ratchet plan — mirroring the package README's documented ratchet path.
+- Non-JS projects: command gates and manual substitutions per package README §3 apply; the deps gate is JS/TS-only (AST-based). The skill must SAY what is ungated rather than let a green exit imply coverage.
+- Setup choices are offered as option-based questions (same protocol as forge-rules grilling).
 
-### Companion CLI fixes (first-run UX)
+### Enforce rules
 
-1. Bare `check` without `dependencyRules`: skip the deps gate with a stderr notice ("dependency rules not configured — run /forge-gate to set them up") instead of exiting 2. Explicit `--deps` still enforces and still exits 2 when unconfigured.
-2. Errors that reference skills must phrase them as guidance valid in any harness ("/forge-gate skill if available; otherwise see <docs URL>") rather than assuming a skill runner exists.
-3. An `init` subcommand remains unnecessary — the umbrella skill IS the init experience for agent users; raw-CLI users follow the README quickstart.
+- Distinguish **baseline debt** (recorded at adoption) from **new violations**: only new ones are loop-fixed.
+- Classify failures: exit-1 code violations → loop-fix; exit-2 setup failures and staleness warnings → repair-the-pipeline stop (never write tests against dead coverage).
+- **No silent green**: any resolution other than changing code — threshold changes, rule edits, accepting debt — requires an explicit user decision via the option-question protocol, recorded in decision notes.
+- Report accepted debt at the end.
 
-Acceptance: scratch-project drill — point an agent at the skill in a bare JS repo and reach all-gates-green with zero documentation reading; error messages validated for harness-neutral phrasing.
+### Companion CLI fixes
+
+1. Bare `check` without `dependencyRules`: SKIP the deps gate with a stderr notice instead of exiting 2. Explicit `--deps` still enforces and still exits 2 when unconfigured. Mechanics: skip logic lives in `src/check.mjs` (so CLI and library consumers agree); notice goes to stderr only; exit code untouched; suppressed when `--deps` is passed. Notice text is pinned verbatim: `dependency rules not configured — some imports are ungated. Run the forge-gate skill if available, or see https://github.com/iamaamir/arc-forge#dependency-rules`. All test assertions pinning `/forge-rules` strings in default-path errors (deps.test.mjs, deps-harden.test.mjs) are updated; the `/forge-rules` pointer remains ONLY on the explicit-`--deps` SetupError path.
+2. Error messages referencing skills must be harness-neutral ("/forge-gate skill if available; otherwise see <URL>"); audit all such messages.
+3. Help text and README updated for precision: bare check "runs all configured gates; unconfigured optional gates (deps without dependencyRules) are skipped with a notice."
+
+This CLI fix is independently shippable (Unit 4a) and does not wait on the skill (Unit 4b).
+
+Acceptance:
+- 4a: bare check on a config-less project exits per non-deps gate results with the notice on stderr; explicit `--deps` still exits 2; all pinning tests updated; help/README precise.
+- 4b: per-row scratch drills with observable assertions (Adopt: every wired gate has ≥1 executed run recorded; Grilling: transcript shows option questions; Enforce: baseline vs new distinction demonstrated) — plus dogfood on arc-forge itself (fully wired → Enforce row, debt reporting exercised).
