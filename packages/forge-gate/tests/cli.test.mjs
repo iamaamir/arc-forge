@@ -207,7 +207,7 @@ test("bare check with dependencyRules runs the deps gate as today", (t) => {
       dependencyRules: { rules: [{ from: "src/**", allow: [], forbid: ["src/b.js"] }], unmatched: "allow" },
     }),
   );
-  const result = runCli(["check", "--crap=1000"], dir);
+  const result = runCli(["check"], dir);
   assert.equal(result.status, 1);
   assert.doesNotMatch(result.stderr, /some imports are ungated/);
   assert.match(result.stderr, /DEPS gate failed/);
@@ -228,8 +228,72 @@ test("mutationViolation rounds score to one decimal", () => {
   assert.match(message, /mutation score 83\.3 /);
 });
 
+test("value-form flag selects its gate without falling back to all gates", (t) => {
+  const dir = makeTempDir(t, "gnt-cli-valueform-");
+  const src = path.join(dir, "src");
+  mkdirSync(src);
+  writeFileSync(path.join(src, "fine.js"), "function fine(a) {\n  return a;\n}\n");
+  writeCoverage(dir, { [path.join(src, "fine.js")]: 1 });
+  const result = runCli(["check", "--crap=1000"], dir);
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /^crap gates passed$/m);
+});
+
+test("duplicate value-form flags resolve to the last occurrence", (t) => {
+  const dir = makeBadProject(t);
+  const result = runCli(["check", "--crap=5", "--crap=40"], dir);
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /^crap gates passed$/m);
+});
+
+test("mixed flag forms resolve to the last occurrence", (t) => {
+  const dir = makeBadProject(t);
+  const result = runCli(["check", "--crap=5", "--crap", "40"], dir);
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /^crap gates passed$/m);
+});
+
+for (const helpArg of ["--help", "-h", "help"]) {
+  test(`cli ${helpArg} prints help and exits 0`, (t) => {
+    const dir = makeBadProject(t);
+    const result = runCli([helpArg], dir);
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /Usage:/);
+  });
+}
+
+test("cli help request after check also exits 0", (t) => {
+  const dir = makeBadProject(t);
+  const result = runCli(["check", "--help"], dir);
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Usage:/);
+});
+
+test("unknown command still prints help and exits 2", (t) => {
+  const dir = makeBadProject(t);
+  const result = runCli(["nonsense"], dir);
+  assert.equal(result.status, 2);
+  assert.match(result.stdout, /Usage:/);
+});
+
+test("output past the capture buffer still reaches the gate message", (t) => {
+  const dir = makeTempDir(t, "gnt-cli-flood-");
+  writeFileSync(
+    path.join(dir, "flood.mjs"),
+    'process.stdout.write("HEADMARKER");\n' +
+      'for (let i = 0; i < 1200; i++) process.stdout.write("x".repeat(10000));\n' +
+      'process.stdout.write("TAILMARKER\\n");\nprocess.exitCode = 1;\n',
+  );
+  writeFileSync(path.join(dir, "forge-gate.config.json"), JSON.stringify({ testCommand: "node flood.mjs" }));
+  const result = runCli(["check", "--spec"], dir);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /testCommand failed:/);
+  assert.match(result.stderr, /HEADMARKER/);
+  assert.match(result.stderr, /capture buffer|truncated/i);
+});
+
 function runCli(args, cwdDir) {
-  return spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", cwd: cwdDir });
+  return spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", cwd: cwdDir, maxBuffer: 64 * 1024 * 1024 });
 }
 
 test("cli exits 2 when requested gate lacks its command config", (t) => {

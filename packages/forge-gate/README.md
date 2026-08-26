@@ -12,7 +12,7 @@ Gates:
 | QA | `--qa` | Your system-level suite passes (`qaCommand`) | — |
 | Deps | `--deps` | The import graph respects negotiated `dependencyRules` (see [Dependency rules](#dependency-rules---deps)) | opt-in |
 
-Exit codes: `0` pass, `1` gate failure, `2` setup/configuration problem.
+Exit codes: `0` pass, `1` gate failure, `2` setup/configuration problem. Explicit help requests (`forge-gate --help`, `-h`, or `help`) exit 0; unknown arguments print help and exit 2.
 
 ```sh
 npx forge-gate check            # run all four gates
@@ -158,11 +158,11 @@ Never skip a gate because tooling is inconvenient — pick an equivalent tool in
 }
 ```
 
-CLI flags override config values for a single run: `--crap=N`, `--mutation=N`, `--roots=src,lib`.
+CLI flags override config values for a single run: `--crap=N`, `--mutation=N`, `--roots=src,lib`. A value form selects its gate too — `check --crap=12` runs *only* the CRAP gate with threshold 12, no all-gates fallback. If the same option appears more than once, the last occurrence wins and earlier ones are ignored entirely (`--crap=5 --crap=40` runs with 40).
 
 Note the asymmetry on empty roots: `--roots=` (CLI, empty value) is treated as unset and falls back to defaults, while `"roots": []` in config is a setup error (exit 2). A config that says "no directories" is almost certainly a mistake; an empty flag usually means "not set".
 
-Parsing is pluggable per extension. Default extensions: `.js`, `.mjs`, `.cjs`, `.ts`, `.mts`, `.cts`. Listing `.jsx`/`.tsx` in `extensions` yields a clean setup error naming the limitation — JSX support is deferred, not broken.
+Parsing is pluggable per extension. Default extensions: `.js`, `.mjs`, `.cjs`, `.ts`, `.mts`, `.cts`. Listing `.jsx`/`.tsx` in `extensions` alone does nothing — the guard only fires when the scanner actually encounters a `.jsx`/`.tsx` file, which yields a clean setup error naming the limitation. JSX support is deferred, not broken.
 
 ### TypeScript
 
@@ -189,6 +189,7 @@ amaro is a WebAssembly build: it installs and runs on Node ≥ 20 even though it
 
 - Statements inside nested functions count toward the *enclosing* function's span coverage. This is conservative (fail-closed): an untested nested callback drags down the outer function's score instead of hiding behind it.
 - Functions whose line span intersects zero instrumented statements are treated as 100% covered. No statements means nothing to have covered.
+- An entirely empty `coverage-final.json` (`{}`) is a setup error (exit 2), not a silent 100%-coverage pass — it almost always means your tests ran without instrumentation. Regenerate with `npx c8 --reporter=json <your test command>`.
 
 ### Dependency rules (`--deps`)
 

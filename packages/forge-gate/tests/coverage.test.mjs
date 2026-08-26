@@ -35,6 +35,19 @@ function finalPath(dir) {
   return path.join(dir, "coverage", "coverage-final.json");
 }
 
+test("empty coverage object raises SetupError instead of passing vacuously", (t) => {
+  const dir = withTempProject(t, {});
+  assert.throws(
+    () => loadCoverage(finalPath(dir)),
+    (error) => {
+      assert.ok(error instanceof SetupError);
+      assert.match(error.message, /contains no files|empty/i);
+      assert.match(error.message, /npx c8 --reporter=json/);
+      return true;
+    },
+  );
+});
+
 test("corrupt coverage report raises SetupError naming the file", (t) => {
   const dir = mkdtempSync(path.join(tmpdir(), "gnt-cov-bad-"));
   t.after(() => {

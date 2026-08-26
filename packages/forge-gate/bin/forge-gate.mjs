@@ -8,8 +8,11 @@ const command = args[0];
 const KNOWN_FLAGS = ["--deps", "--spec", "--crap", "--mutation", "--qa"];
 const VALUE_FLAGS = new Set(["--crap", "--mutation", "--roots"]);
 const KNOWN_OPTION_PREFIXES = ["--crap=", "--mutation=", "--roots="];
+const HELP_FLAGS = new Set(["--help", "-h", "help"]);
 
-if (command !== "check") {
+if (args.some((arg) => HELP_FLAGS.has(arg))) {
+  printHelp();
+} else if (command !== "check") {
   printHelp();
   process.exitCode = 2;
 } else await runCheck();
@@ -17,7 +20,12 @@ if (command !== "check") {
 async function runCheck() {
   if (!validateFlags()) return;
   if (!validateNumericFlags()) return;
-  const gates = KNOWN_FLAGS.filter((flag) => args.includes(flag)).map((flag) => flag.slice(2));
+  // A gate is selected by its bare flag OR any value form (--crap=N / --crap N).
+  // When the same option appears multiple times, the last occurrence wins and
+  // earlier ones are ignored entirely.
+  const gates = KNOWN_FLAGS.filter(
+    (flag) => args.includes(flag) || args.some((arg) => arg.startsWith(`${flag}=`)),
+  ).map((flag) => flag.slice(2));
   const options = {
     roots: parseRoots(getOptionValue("--roots")),
     crapThreshold: parseNumber(getOptionValue("--crap")),
@@ -91,13 +99,16 @@ function parseRoots(value) {
 }
 
 function getOptionValue(name) {
-  const eqForm = args.find((arg) => arg.startsWith(`${name}=`));
-  if (eqForm !== undefined) return eqForm.slice(name.length + 1);
-  const index = args.indexOf(name);
-  if (index === -1) return undefined;
-  const next = args[index + 1];
-  if (next === undefined || next.startsWith("--")) return undefined;
-  return next;
+  for (let i = args.length - 1; i >= 0; i--) {
+    const arg = args[i];
+    if (arg.startsWith(`${name}=`)) return arg.slice(name.length + 1);
+    if (arg === name) {
+      const next = args[i + 1];
+      if (next === undefined || next.startsWith("--")) return undefined;
+      return next;
+    }
+  }
+  return undefined;
 }
 
 function printHelp() {
@@ -112,5 +123,8 @@ Runs deterministic quality gates. With no gate flags, runs all configured
 gates; unconfigured optional gates (deps without dependencyRules in
 forge-gate.config.json) are skipped with a notice on stderr. Pass --deps to
 enforce dependency rules explicitly (exit 2 when unconfigured).
-Exit codes: 0 pass, 1 gate failure, 2 setup error.`);
+
+A value form (--crap=N or --crap N) selects its gate as well as overriding the
+threshold. If an option repeats, the last occurrence wins.
+Exit codes: 0 pass, 1 gate failure, 2 setup error; --help exits 0.`);
 }

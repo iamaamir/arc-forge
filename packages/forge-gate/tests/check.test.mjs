@@ -241,14 +241,23 @@ test("unexpected errors propagate instead of becoming setup failures", async () 
   );
 });
 
-test("command killed by output overflow reports could-not-run with cause", async (t) => {
+test("command killed by output overflow keeps captured output and flags truncation", async (t) => {
   const dir = makeTempDir(t, "gnt-enobufs-");
   process.chdir(dir);
   const result = await runGatesAsync(["spec"], {
-    testCommand: `node -e "process.stdout.write('x'.repeat(11 * 1024 * 1024))"`,
+    testCommand: `node -e "process.stdout.write('HEAD'); process.stdout.write('x'.repeat(11 * 1024 * 1024))"`,
   });
   assert.equal(result.status, 1);
-  assert.match(result.message, /^testCommand could not run: /);
+  assert.match(result.message, /^testCommand failed:\nHEAD/);
+  assert.match(result.message, /capture buffer and was truncated/);
+});
+
+test("command that cannot spawn reports the spawn error as could-not-run", async (t) => {
+  const dir = makeTempDir(t, "gnt-e2big-");
+  process.chdir(dir);
+  const result = await runGatesAsync(["spec"], { testCommand: `echo ${"x".repeat(5_000_000)}` });
+  assert.equal(result.status, 1);
+  assert.match(result.message, /^testCommand could not run: .*E2BIG/);
 });
 
 test("coverage exactly as fresh as sources emits no staleness warning", async (t) => {

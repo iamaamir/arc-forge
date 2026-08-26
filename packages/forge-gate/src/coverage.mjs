@@ -17,6 +17,13 @@ export function loadCoverage(finalPath = "coverage/coverage-final.json") {
     throw new SetupError(`invalid coverage data at ${finalPath}. Regenerate it with: npx c8 --reporter=json <your test command>`);
   }
   const keys = Object.keys(data);
+  if (keys.length === 0) {
+    throw new SetupError(
+      `coverage data at ${finalPath} contains no files — it was probably generated without any instrumented tests running ` +
+        `(e.g. the reporter was enabled but no code executed under coverage). ` +
+        `Regenerate it with: npx c8 --reporter=json <your test command>`,
+    );
+  }
   const exactKeys = new Map(keys.map((key) => [canonicalize(key), key]));
   return {
     mtimeMs: statSync(resolved).mtimeMs,

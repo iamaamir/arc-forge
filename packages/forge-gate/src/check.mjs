@@ -77,10 +77,22 @@ function commandGateFailure(key, result) {
   if (result.timedOut) {
     return `${key} timed out after ${result.timeoutSeconds}s — raise commandTimeoutSeconds in forge-gate.config.json if your suite is slow`;
   }
-  if (result.error) {
+  if (spawnError(result)) {
     return `${key} could not run: ${result.error.message}`;
   }
-  return `${key} failed:\n${result.output}`;
+  return `${key} failed:\n${result.output}${truncationNotice(result)}`;
+}
+
+// ENOBUFS means the capture buffer was exceeded; the child was killed but its
+// drained output is kept and shown instead of being discarded.
+function spawnError(result) {
+  return Boolean(result.error) && !result.truncated;
+}
+
+function truncationNotice(result) {
+  return result.truncated
+    ? "\n(output exceeded the capture buffer and was truncated — fix the noisy output or raise it at the source)"
+    : "";
 }
 
 function runCrapGate(config) {
