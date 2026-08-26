@@ -194,6 +194,23 @@ test("fresh coverage does not emit a staleness warning", async (t) => {
   assert.equal(warnings.output, "");
 });
 
+test("default selection skips unconfigured deps gate with a stderr notice", async (t) => {
+  const warnings = captureConsoleError(t);
+  const result = await runGatesAsync(["deps"], { testCommand: "true" }, { defaultSelection: true });
+  assert.deepEqual(result, { status: 0, failedGate: null, message: "no gates selected" });
+  assert.match(
+    warnings.output,
+    /dependency rules not configured — some imports are ungated\. Run the forge-gate skill if available, or see https:\/\/github\.com\/iamaamir\/arc-forge#dependency-rules/,
+  );
+});
+
+test("explicit deps selection still enforces configuration with no skip notice", async (t) => {
+  const warnings = captureConsoleError(t);
+  const result = await runGatesAsync(["deps"], {});
+  assert.equal(result.status, 2);
+  assert.equal(warnings.output, "");
+});
+
 function captureConsoleError(t) {
   const original = console.error;
   const captured = { output: "" };

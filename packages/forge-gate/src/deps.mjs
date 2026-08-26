@@ -20,7 +20,8 @@ export function runDepsGate(config) {
     "DEPS gate failed:",
     ...violations.map((violation) => `  ${violation.message}`),
     summaryLine(violations),
-    "Fix the imports or renegotiate the rules via /forge-rules",
+    "Fix the imports or renegotiate the rules — run the forge-rules skill if available, " +
+    "or see https://github.com/iamaamir/arc-forge#dependency-rules",
   ];
 }
 
@@ -392,7 +393,8 @@ export function validateDependencyRules(config) {
   const depRules = config.dependencyRules;
   if (depRules === undefined) {
     throw new SetupError(
-      "dependencyRules is not configured — negotiate rules with your team by running the /forge-rules skill, " +
+      "dependencyRules is not configured — negotiate rules with your team by running the forge-rules skill " +
+        "if available (otherwise see https://github.com/iamaamir/arc-forge#dependency-rules), " +
         "then add them to forge-gate.config.json",
     );
   }

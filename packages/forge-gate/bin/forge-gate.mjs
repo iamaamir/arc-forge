@@ -24,15 +24,15 @@ async function runCheck() {
     mutationScoreThreshold: parseNumber(getOptionValue("--mutation")),
   };
   try {
-    await executeGates(gates.length ? gates : gateOrder(), options);
+    await executeGates(gates.length ? gates : gateOrder(), options, gates.length === 0);
   } catch (error) {
     reportGateCrash(error);
   }
 }
 
-async function executeGates(gates, options) {
+async function executeGates(gates, options, defaultSelection) {
   const config = await loadConfigAsync(options);
-  const result = await runGatesAsync(gates, config);
+  const result = await runGatesAsync(gates, config, { defaultSelection });
   if (result.status !== 0) console.error(result.message);
   else console.log(result.message);
   process.exitCode = result.status;
@@ -108,8 +108,9 @@ Usage:
                  [--crap=N | --crap N] [--mutation=N | --mutation N]
                  [--roots=src,lib | --roots src,lib]
 
-Runs deterministic quality gates. The deps gate (dependency-rule enforcement
-from dependencyRules in forge-gate.config.json) runs first. With no gate flags,
-runs all gates.
+Runs deterministic quality gates. With no gate flags, runs all configured
+gates; unconfigured optional gates (deps without dependencyRules in
+forge-gate.config.json) are skipped with a notice on stderr. Pass --deps to
+enforce dependency rules explicitly (exit 2 when unconfigured).
 Exit codes: 0 pass, 1 gate failure, 2 setup error.`);
 }

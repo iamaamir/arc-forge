@@ -60,7 +60,7 @@ test("single violation produces the exact four-line report", async (t) => {
     "DEPS gate failed:\n" +
       "  src/app.js -> src/lib/evil.js (violates rule 1) — remove the import or update dependencyRules\n" +
       "1 violation across 1 file\n" +
-      "Fix the imports or renegotiate the rules via /forge-rules",
+      "Fix the imports or renegotiate the rules — run the forge-rules skill if available, or see https://github.com/iamaamir/arc-forge#dependency-rules",
   );
 });
 
@@ -153,7 +153,7 @@ test("unresolved import produces the exact remedy text", async (t) => {
     "DEPS gate failed:\n" +
       '  src/a.js imports "./missing.js" which cannot be resolved — fix or remove the broken import\n' +
       "1 violation across 1 file\n" +
-      "Fix the imports or renegotiate the rules via /forge-rules",
+      "Fix the imports or renegotiate the rules — run the forge-rules skill if available, or see https://github.com/iamaamir/arc-forge#dependency-rules",
   );
 });
 
@@ -183,7 +183,7 @@ test("external module denied produces the exact message", async (t) => {
     "DEPS gate failed:\n" +
       "  src/a.js -> picomatch (external module denied by allowNodeModules) — allow it explicitly or drop the dependency\n" +
       "1 violation across 1 file\n" +
-      "Fix the imports or renegotiate the rules via /forge-rules",
+      "Fix the imports or renegotiate the rules — run the forge-rules skill if available, or see https://github.com/iamaamir/arc-forge#dependency-rules",
   );
 });
 
@@ -199,7 +199,7 @@ test("unmatched policy defaults to deny with exact message", async (t) => {
     "DEPS gate failed:\n" +
       '  orphan/a.js matches no dependencyRules.from pattern (unmatched: "deny") — add a rule covering it or set unmatched to "allow"\n' +
       "1 violation across 1 file\n" +
-      "Fix the imports or renegotiate the rules via /forge-rules",
+      "Fix the imports or renegotiate the rules — run the forge-rules skill if available, or see https://github.com/iamaamir/arc-forge#dependency-rules",
   );
 });
 
@@ -278,7 +278,7 @@ test("glob rules match dotted directories", async (t) => {
     "DEPS gate failed:\n" +
       "  src/a.js -> src/.config/secret.js (violates rule 1) — remove the import or update dependencyRules\n" +
       "1 violation across 1 file\n" +
-      "Fix the imports or renegotiate the rules via /forge-rules",
+      "Fix the imports or renegotiate the rules — run the forge-rules skill if available, or see https://github.com/iamaamir/arc-forge#dependency-rules",
   );
 });
 
@@ -333,7 +333,7 @@ test("neither-allowed-nor-forbidden message is exact", async (t) => {
     "DEPS gate failed:\n" +
       "  src/cli/run.js -> src/util/helper.js (violates rule 1) — target is neither allowed nor forbidden by rule 1; add an explicit allow or forbid\n" +
       "1 violation across 1 file\n" +
-      "Fix the imports or renegotiate the rules via /forge-rules",
+      "Fix the imports or renegotiate the rules — run the forge-rules skill if available, or see https://github.com/iamaamir/arc-forge#dependency-rules",
   );
 });
 
@@ -471,7 +471,7 @@ test("workspace package entry honours package.json main exactly", async (t) => {
       "  src/main.js -> lib/withmain/entry.js (violates rule 1) — remove the import or update dependencyRules\n" +
       "  src/main.js -> lib/withdir/index.js (violates rule 1) — remove the import or update dependencyRules\n" +
       "2 violations across 1 file\n" +
-      "Fix the imports or renegotiate the rules via /forge-rules",
+      "Fix the imports or renegotiate the rules — run the forge-rules skill if available, or see https://github.com/iamaamir/arc-forge#dependency-rules",
   );
 });
 
@@ -718,7 +718,8 @@ test("missing dependencyRules produces the exact guidance message", async (t) =>
   assert.equal(result.status, 2);
   assert.equal(
     result.message,
-    "dependencyRules is not configured — negotiate rules with your team by running the /forge-rules skill, " +
+    "dependencyRules is not configured — negotiate rules with your team by running the forge-rules skill " +
+      "if available (otherwise see https://github.com/iamaamir/arc-forge#dependency-rules), " +
       "then add them to forge-gate.config.json",
   );
 });

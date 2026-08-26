@@ -376,11 +376,11 @@ test("targets neither allowed nor forbidden under the matched rule are denied", 
   assert.match(result.message, /src\/cli\/run\.js -> src\/util\/helper\.js \(violates rule 1\)/);
 });
 
-test("missing dependencyRules key is a setup error pointing at /forge-rules", async (t) => {
+test("missing dependencyRules key is a setup error pointing at rule negotiation", async (t) => {
   const result = await runDeps(t, { "src/a.js": "export default 1;\n" }, {});
   assert.equal(result.status, 2);
   assert.match(result.message, /dependencyRules/);
-  assert.match(result.message, /\/forge-rules/);
+  assert.match(result.message, /forge-rules skill if available/);
 });
 
 test("misconfiguration matrix surfaces as setup errors with actionable stderr", async (t) => {

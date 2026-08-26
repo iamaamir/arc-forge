@@ -9,17 +9,28 @@ import { SetupError } from "./errors.mjs";
 
 const GATE_ORDER = ["deps", "spec", "crap", "mutation", "qa"];
 
+export const UNCONFIGURED_DEPS_NOTICE =
+  "dependency rules not configured — some imports are ungated. " +
+  "Run the forge-gate skill if available, or see https://github.com/iamaamir/arc-forge#dependency-rules";
+
 export function gateOrder() {
   return [...GATE_ORDER];
 }
 
-export async function runGatesAsync(requestedGates, config) {
-  const gates = GATE_ORDER.filter((gate) => requestedGates.includes(gate));
+export async function runGatesAsync(requestedGates, config, { defaultSelection = false } = {}) {
+  let gates = GATE_ORDER.filter((gate) => requestedGates.includes(gate));
+  gates = omitUnconfiguredDeps(gates, config, defaultSelection);
   try {
     return await runAllGates(gates, config);
   } catch (error) {
     return toSetupFailure(error);
   }
+}
+
+function omitUnconfiguredDeps(gates, config, defaultSelection) {
+  if (!defaultSelection || !gates.includes("deps") || config.dependencyRules !== undefined) return gates;
+  console.error(UNCONFIGURED_DEPS_NOTICE);
+  return gates.filter((gate) => gate !== "deps");
 }
 
 async function runAllGates(gates, config) {

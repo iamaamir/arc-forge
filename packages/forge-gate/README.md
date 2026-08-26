@@ -192,7 +192,7 @@ amaro is a WebAssembly build: it installs and runs on Node ≥ 20 even though it
 
 ### Dependency rules (`--deps`)
 
-Opt-in gate: pass `--deps` explicitly. Bare `forge-gate check` does not run it, so projects that never negotiate rules are unaffected (defaulting it on would exit 1 for every project without a `dependencyRules` block). Negotiate the rules with your team — or with the [`forge-rules`](../../skills/engineering/forge-rules/SKILL.md) skill — never invent them silently.
+Bare `forge-gate check` runs all *configured* gates; the deps gate is optional — without a `dependencyRules` block it is skipped with a stderr notice (`dependency rules not configured — some imports are ungated`), so projects that never negotiate rules are unaffected. Pass `--deps` explicitly to enforce them; that exits 2 when `dependencyRules` is missing. Negotiate the rules with your team — or with the [`forge-rules`](../../skills/engineering/forge-rules/SKILL.md) skill — never invent them silently.
 
 ```json
 {
