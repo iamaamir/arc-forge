@@ -211,3 +211,26 @@ This CLI fix is independently shippable (Unit 4a) and does not wait on the skill
 Acceptance:
 - 4a: bare check on a config-less project exits per non-deps gate results with the notice on stderr; explicit `--deps` still exits 2; all pinning tests updated; help/README precise.
 - 4b: per-row scratch drills with observable assertions (Adopt: every wired gate has ≥1 executed run recorded; Grilling: transcript shows option questions; Enforce: baseline vs new distinction demonstrated) — plus dogfood on arc-forge itself (fully wired → Enforce row, debt reporting exercised).
+
+## 7. QA Model Refinement (post-transcript re-read)
+
+Verbatim grounding: the Specifier writes the QA procedure "from a human's point of view.
+You are a human. You are operating this system at the UI. You must prove that the system
+works"; the QA agent "takes the written QA document, turns it into an executable script
+that manipulates the system and comes up with a deterministic result."
+
+Encoded decisions:
+
+- **Human-POV procedures** (stage-1): journeys of a user operating the finished system at
+  its real interface; developer chores (unit suites) excluded — already gated elsewhere;
+  every step externally observable and mechanically assertable.
+- **Committed driver scripts** (stage-5): the QA agent translates the procedure into a
+  persistent executable (e.g. `scripts/qa.mjs`) wired as `qaCommand`; it manipulates the
+  real system in scratch harnesses and yields a deterministic verdict. The script is test
+  code and persists; only the prose procedure is ephemeral. Ephemeral drivers rejected:
+  re-translation per run is itself non-deterministic.
+- The QA agent behaves like a professional QA hire: learns the product's promises, writes/
+  executes charters from user journeys, treats unautomatable steps as findings.
+
+arc-forge follow-up: convert docs/QA-v2.md into a committed driver script wired to the
+root config's qaCommand (currently manual re-performance).
