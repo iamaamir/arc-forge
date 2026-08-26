@@ -162,10 +162,39 @@ Same contract as v1: 0 pass, 1 gate failure, 2 setup error. New setup errors: un
 
 ## Implementation Units
 
-Three independently shippable slices, in this order:
+Four independently shippable slices, in this order:
 
 1. **TS support** — parser dispatch + amaro + fidelity fixtures + coverage-pipeline test. Acceptance: `.ts` file with an uncovered complex function fails CRAP correctly through a real c8 run; dogfood includes a `.ts` source file.
 2. **Deps gate** — import extraction, rule evaluation, validation, gate wiring. Acceptance: fixture matrix green + violating-fixture negative test.
 3. **forge-rules skill + viz guide** — playbooks, guide doc. Acceptance: skill discovery passes; a real negotiation session on arc-forge produces the root config from unit 2's dogfooding.
+4. **`forge-gate` umbrella skill** — see §6 below, plus companion CLI first-run fixes.
 
 Each unit ships separately; TS support must not wait on glob-semantics debates and vice versa.
+
+## 6. The `forge-gate` Umbrella Skill
+
+One entry point: a user points the agent at `/forge-gate`; the skill detects project state and routes. Modeled on the impeccable pattern — one name, internal routing, no upfront user education required.
+
+### Routing table
+
+| Detected state | Route |
+|---|---|
+| No forge-gate.config.json | **Adopt**: install/wire forge-gate + c8 coverage into test script (+ Stryker when mutation gating is wanted), scaffold config with sensible roots/extensions, wire `testCommand`, then route into negotiation |
+| Config exists, no `dependencyRules` | Negotiate via the forge-rules skill's grilling protocol |
+| Fully wired | **Enforce**: run all gates, loop-fix red ones (respecting stage ownership: complexity → refactor, survivors → tests, rule breaks → negotiate or fix imports), report accepted debt |
+| User is building a new feature/story | Hand off to the gauntlet pipeline skill |
+
+### Adoption principles
+
+- The agent does the wiring; the user answers questions, never reads docs
+- Nothing is configured without being exercised: after setup, run every wired gate once end-to-end before declaring adoption done
+- Setup choices are offered as option-based questions (same protocol as forge-rules grilling): e.g., "mutation gating now, or later?"
+- Non-JS projects: adopt what applies (deps gate, command gates), substitute per package README §3, say plainly what cannot be gated
+
+### Companion CLI fixes (first-run UX)
+
+1. Bare `check` without `dependencyRules`: skip the deps gate with a stderr notice ("dependency rules not configured — run /forge-gate to set them up") instead of exiting 2. Explicit `--deps` still enforces and still exits 2 when unconfigured.
+2. Errors that reference skills must phrase them as guidance valid in any harness ("/forge-gate skill if available; otherwise see <docs URL>") rather than assuming a skill runner exists.
+3. An `init` subcommand remains unnecessary — the umbrella skill IS the init experience for agent users; raw-CLI users follow the README quickstart.
+
+Acceptance: scratch-project drill — point an agent at the skill in a bare JS repo and reach all-gates-green with zero documentation reading; error messages validated for harness-neutral phrasing.
