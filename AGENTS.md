@@ -15,6 +15,14 @@ review before being considered final:
    adversarial pass — fixes introduce new bugs.
 4. **Track findings to closure**: must-fix before merge, should-fix tracked, acceptable
    deviations written down as documented non-goals (never silently dropped).
+5. **Use the operational playbook.** Reviews execute
+   `skills/engineering/gauntlet/references/axiom-review.md` — it proceduralizes verbatim-read
+   mechanics, severity assignment, verification depth, read-only constraints, and the report
+   template so review quality does not depend on model tier.
+6. **Single ledger.** `LEDGER.md` is the mandatory home for all findings (DEFECTS), employer
+   rulings (RULINGS), and accepted deviations (NON-GOALS) — one ledger, no split-brain across
+   scratch files or changelogs. Fix-batch commit messages MUST reference the ledger IDs they
+   close; reviewers verify closure against that file, not changelogs.
 
 ## Dogfooding mandate
 

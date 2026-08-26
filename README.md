@@ -37,6 +37,8 @@ npx skills add iamaamir/arc-forge --list
 - [`one-thing-functions`](packages/one-thing-functions) — checker CLI for one-thing function rules.
 - [`forge-gate`](packages/forge-gate) — `forge-gate check` CLI gating projects on CRAP scores and mutation-test scores.
 
+Process: adversarial reviews follow the Axiom playbook (`skills/engineering/gauntlet/references/axiom-review.md`); defects, rulings, and non-goals are tracked in [`LEDGER.md`](LEDGER.md).
+
 Validate an installed adaptive AI-team footprint:
 
 ```sh

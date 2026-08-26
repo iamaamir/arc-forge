@@ -8,6 +8,10 @@ Default threshold is mutation score ≥ 95.
 
 Why 95 and not 100: the source workflow's hardener is absolutely merciless — effectively total coverage, every `=`, every `<` mutated. The default sits at 95 because provably equivalent mutants genuinely exist once a suite is this strong (our own dogfood run documented 87 equivalents at a raw score of 92.32%). Below 95, survivors mean your tests are too weak — kill more. Above 95, the loop becomes kill-or-prove-equivalent for every remaining survivor, which the ratchet in the forge-gate README extends further. Raising thresholds still requires explicit user approval; lowering one to get green is never acceptable.
 
-Gate: `npx forge-gate check --mutation`. Loop until exit code 0. Update `gauntlet-state.md` with the score and the documented equivalents.
+Gate: `npx forge-gate check --mutation`. Loop until exit code 0.
+
+Closing pass: once the mutation gate is green, run a final hardening-scope review with the Axiom playbook (`references/axiom-review.md`) — attack the hardening delta itself (new tests pinning behavior vs mirroring implementation, equivalents genuinely equivalent, no survivor hand-waved). Findings land in `gauntlet-state.md`; fix before proceeding.
+
+Update `gauntlet-state.md` with the score and the documented equivalents.
 
 Non-JS ecosystems: use mutmut / cargo-mutants / go-mutesting and gate manually on their scores; record the command in `forge-gate.config.json`.

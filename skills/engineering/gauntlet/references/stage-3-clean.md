@@ -10,6 +10,6 @@ Reduce complexity while keeping every test green:
 
 Default threshold is CRAP ≤ 8. Raising it requires explicit user approval.
 
-When the CRAP loop passes, your job is not done. Second mandatory duty: **general code review of the full stage-2 diff**, hunting mess the gate cannot measure — dead code, misleading names, swallowed errors, duplicated logic, leftover debris. Fix what you find; tests remain the referee. The gate scores complexity × coverage, not clarity — this review is how the dogfood run caught `build-static.mjs` calling an unimported `rm()` that every rebuild would have crashed on.
+When the CRAP loop passes, your job is not done. Second mandatory duty: **general code review of the full stage-2 diff**, hunting mess the gate cannot measure — dead code, misleading names, swallowed errors, duplicated logic, leftover debris. Execute the Axiom review playbook (`references/axiom-review.md`) against the stage-2 diff; its findings table and verdict (SHIP IT / FIX FIRST) go in `gauntlet-state.md`. Fix what you find; tests remain the referee. The gate scores complexity × coverage, not clarity — this review is how the dogfood run caught `build-static.mjs` calling an unimported `rm()` that every rebuild would have crashed on.
 
 Gate: `npx forge-gate check --crap`. Loop until exit code 0, then complete the diff review. Update `gauntlet-state.md`.
