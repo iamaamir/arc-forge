@@ -5,6 +5,9 @@ node_modules/
 !.env.example
 coverage/
 dist/
+packages/forge-gate/reports/
+packages/forge-gate/stryker-tmp/
+packages/forge-gate/.stryker-tmp/
 *.log
 npm-debug.log*
 *.tgz

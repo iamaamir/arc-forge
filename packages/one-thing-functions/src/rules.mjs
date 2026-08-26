@@ -41,10 +41,25 @@ function inspectDestructuredBag(node, parsed, config, violations) {
 function isAllowedConstructor(node) {
   if (node.type !== "FunctionExpression") return false;
   const parent = node.parent;
-  if (!parent || parent.type !== "MethodDefinition") return false;
-  if (parent.kind !== "constructor") return false;
+  return isConstructorMethod(parent) && hasAllowedConstructorParams(node);
+}
+
+function isConstructorMethod(parent) {
+  if (!isMethodDefinition(parent)) return false;
+  return parent.kind === "constructor";
+}
+
+function isMethodDefinition(parent) {
+  return Boolean(parent) && parent.type === "MethodDefinition";
+}
+
+function hasAllowedConstructorParams(node) {
   if (node.params.length <= 2) return true;
-  return node.params.length === 1 && node.params[0].type === "ObjectPattern";
+  return isSingleObjectPattern(node.params);
+}
+
+function isSingleObjectPattern(params) {
+  return params.length === 1 && params[0].type === "ObjectPattern";
 }
 
 function isAllowedFactory(node, config) {

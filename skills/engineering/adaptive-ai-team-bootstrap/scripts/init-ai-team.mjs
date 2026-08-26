@@ -126,7 +126,6 @@ async function detectSignals(projectPath) {
 }
 
 function renderProposal(signals) {
-  const footprint = signals.existingAiTeam ? "standard update" : "standard"
   return `# Project Induction Proposal
 
 Template-Version: adaptive-ai-team-bootstrap@0.1.0
@@ -139,17 +138,11 @@ Date: ${today()}
 
 ## Detected Signals
 
-- Existing agent instructions: ${signals.hasAgentInstructions ? "yes" : "no"}
-- Existing docs: ${signals.hasDocs ? "yes" : "no"}
-- CI workflows: ${signals.hasCi ? "yes" : "no"}
-- package.json: ${signals.hasPackageJson ? "yes" : "no"}
-- .gitignore: ${signals.hasGitignore ? "yes" : "no"}
-- Test signals: ${signals.hasTests ? "yes" : "no"}
-- Existing AI-team footprint: ${signals.existingAiTeam ? "yes" : "no"}
+${renderSignalLines(signals)}
 
 ## New-Project Hygiene
 
-- \`.gitignore\` recommendation: ${signals.hasGitignore ? "preserve and review existing ignore rules" : "create a baseline .gitignore before app scaffolding or verification writes generated files"}
+- \`.gitignore\` recommendation: ${gitignoreRecommendation(signals.hasGitignore)}
 - Environment files: keep \`.env\` and \`.env.*\` ignored; commit only safe examples such as \`.env.example\`.
 
 ## Recommended Active Standards
@@ -161,7 +154,7 @@ Date: ${today()}
 
 ## Recommended Footprint
 
-- Recommendation: ${footprint}
+- Recommendation: ${footprintRecommendation(signals.existingAiTeam)}
 - Root entrypoint: AGENTS.md only after conflict review
 - Durable docs: docs/ai-team/
 - Runtime state: .ai-team/
@@ -189,4 +182,31 @@ ${signals.sampleFiles.map((file) => `- ${file}`).join("\n")}
 
 Approve the recommended footprint before creating or modifying project artifacts.
 `
+}
+
+function renderSignalLines(signals) {
+  return [
+    ["Existing agent instructions", signals.hasAgentInstructions],
+    ["Existing docs", signals.hasDocs],
+    ["CI workflows", signals.hasCi],
+    ["package.json", signals.hasPackageJson],
+    [".gitignore", signals.hasGitignore],
+    ["Test signals", signals.hasTests],
+    ["Existing AI-team footprint", signals.existingAiTeam],
+  ]
+    .map(([label, value]) => `- ${label}: ${yesNo(value)}`)
+    .join("\n")
+}
+
+function yesNo(value) {
+  return value ? "yes" : "no"
+}
+
+function footprintRecommendation(existingAiTeam) {
+  return existingAiTeam ? "standard update" : "standard"
+}
+
+function gitignoreRecommendation(hasGitignore) {
+  if (hasGitignore) return "preserve and review existing ignore rules"
+  return "create a baseline .gitignore before app scaffolding or verification writes generated files"
 }

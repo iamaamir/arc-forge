@@ -10,7 +10,7 @@
  * Customize the includes array to match your project structure.
  */
 
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, relative, parse } from 'node:path';
 
@@ -25,17 +25,28 @@ const INCLUDES = [
 ];
 
 async function build() {
-  if (existsSync(DIST)) await rm(DIST, { recursive: true });
-  await mkdir(DIST, { recursive: true });
-
-  for (const item of INCLUDES) {
-    const src = join(ROOT, item);
-    if (!existsSync(src)) continue;
-    await cp(src, join(DIST, item), { recursive: true });
-  }
+  await resetDist();
+  await copyIncludes();
 
   console.log(`Built to ${DIST}`);
   console.log('Deploy dist/ to GitHub Pages or any static host.');
+}
+
+async function resetDist() {
+  if (existsSync(DIST)) await rm(DIST, { recursive: true });
+  await mkdir(DIST, { recursive: true });
+}
+
+async function copyIncludes() {
+  for (const item of INCLUDES) {
+    await copyInclude(item);
+  }
+}
+
+async function copyInclude(item) {
+  const src = join(ROOT, item);
+  if (!existsSync(src)) return;
+  await cp(src, join(DIST, item), { recursive: true });
 }
 
 build().catch(console.error);

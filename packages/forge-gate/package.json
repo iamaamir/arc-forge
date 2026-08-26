@@ -1,0 +1,44 @@
+{
+  "name": "forge-gate",
+  "version": "0.1.0",
+  "description": "Deterministic quality-gate checker CLI: CRAP analysis and mutation-score gating.",
+  "type": "module",
+  "bin": {
+    "forge-gate": "bin/forge-gate.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "profiles",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "c8 --reporter=json --reporter=text node --test tests/*.test.mjs"
+  },
+  "keywords": [
+    "quality-gates",
+    "crap",
+    "mutation-testing",
+    "agent-skills",
+    "tdd"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iamaamir/arc-forge.git",
+    "directory": "packages/forge-gate"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "^10.0.0",
+    "c8": "^10.1.0"
+  },
+  "dependencies": {
+    "acorn": "^8.16.0",
+    "amaro": "^1.1.11",
+    "picomatch": "^4.0.7"
+  }
+}

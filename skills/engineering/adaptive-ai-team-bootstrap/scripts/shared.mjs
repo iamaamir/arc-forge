@@ -5,33 +5,53 @@ import path from "node:path"
 export function parseArgs(argv) {
   const args = { _: [] }
   for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i]
-    if (!arg.startsWith("--")) {
-      args._.push(arg)
-      continue
-    }
-    if (arg.includes("=")) {
-      const [key, ...valueParts] = arg.slice(2).split("=")
-      args[key] = valueParts.join("=")
-      continue
-    }
-    const key = arg.slice(2)
-    const next = argv[i + 1]
-    if (!next || next.startsWith("--")) {
-      args[key] = true
-      continue
-    }
-    args[key] = next
-    i += 1
+    i = consumeArg(argv, i, args)
   }
   return args
 }
 
-export function projectRoot(args) {
-  if (args.project !== undefined && (typeof args.project !== "string" || args.project.trim() === "")) {
-    throw new Error("--project must be followed by a non-empty path")
+function consumeArg(argv, index, args) {
+  const arg = argv[index]
+  if (!arg.startsWith("--")) {
+    args._.push(arg)
+    return index
   }
+  if (arg.includes("=")) {
+    assignInlineValue(arg, args)
+    return index
+  }
+  return consumeFlagWithOptionalValue(argv, index, args)
+}
+
+function assignInlineValue(arg, args) {
+  const [key, ...valueParts] = arg.slice(2).split("=")
+  args[key] = valueParts.join("=")
+}
+
+function consumeFlagWithOptionalValue(argv, index, args) {
+  const key = argv[index].slice(2)
+  const next = argv[index + 1]
+  if (!next || next.startsWith("--")) {
+    args[key] = true
+    return index
+  }
+  args[key] = next
+  return index + 1
+}
+
+export function projectRoot(args) {
+  assertProjectPath(args.project)
   return path.resolve(String(args.project || "."))
+}
+
+function assertProjectPath(project) {
+  if (project === undefined) return
+  assertNonEmptyProjectPath(project)
+}
+
+function assertNonEmptyProjectPath(project) {
+  if (typeof project === "string" && project.trim() !== "") return
+  throw new Error("--project must be followed by a non-empty path")
 }
 
 export async function ensureDir(dir) {
@@ -90,26 +110,32 @@ export async function listFiles(root) {
   return output
 }
 
+const IGNORED_PROJECT_ENTRIES = new Set([
+  ".git",
+  "node_modules",
+  ".next",
+  ".agents",
+  ".goose",
+  ".pi",
+  ".qwen",
+])
+
+const IGNORED_PROJECT_PREFIXES = [
+  ".git/",
+  "node_modules/",
+  ".next/",
+  ".agents/",
+  ".goose/",
+  ".pi/",
+  ".qwen/",
+  ".claude/skills/",
+]
+
 export function shouldIgnoreProjectPath(relPath) {
   const normalized = relPath.split(path.sep).join("/")
-  return (
-    normalized === ".git" ||
-    normalized === "node_modules" ||
-    normalized === ".next" ||
-    normalized === ".agents" ||
-    normalized === ".goose" ||
-    normalized === ".pi" ||
-    normalized === ".qwen" ||
-    normalized === "skills-lock.json" ||
-    normalized.startsWith(".git/") ||
-    normalized.startsWith("node_modules/") ||
-    normalized.startsWith(".next/") ||
-    normalized.startsWith(".agents/") ||
-    normalized.startsWith(".goose/") ||
-    normalized.startsWith(".pi/") ||
-    normalized.startsWith(".qwen/") ||
-    normalized.startsWith(".claude/skills/")
-  )
+  if (IGNORED_PROJECT_ENTRIES.has(normalized)) return true
+  if (normalized === "skills-lock.json") return true
+  return IGNORED_PROJECT_PREFIXES.some((prefix) => normalized.startsWith(prefix))
 }
 
 export function relative(root, filePath) {
@@ -120,11 +146,9 @@ export function markdownTableColumnIssues(text) {
   const issues = []
   const lines = text.split("\n")
   for (let index = 0; index < lines.length - 1; index += 1) {
-    const header = lines[index]
-    const separator = lines[index + 1]
-    if (!header.trim().startsWith("|") || !separator.trim().startsWith("|") || !separator.includes("---")) continue
-    const headerCount = tableCellCount(header)
-    const separatorCount = tableCellCount(separator)
+    if (!isTableHeaderPair(lines, index)) continue
+    const headerCount = tableCellCount(lines[index])
+    const separatorCount = tableCellCount(lines[index + 1])
     if (headerCount !== separatorCount) {
       issues.push({ line: index + 1, headerCount, separatorCount })
     }
@@ -140,17 +164,35 @@ export function markdownTableFirstColumnValues(text) {
   const values = []
   const lines = text.split("\n")
   for (let index = 0; index < lines.length - 2; index += 1) {
-    const header = lines[index]
-    const separator = lines[index + 1]
-    if (!header.trim().startsWith("|") || !separator.trim().startsWith("|") || !separator.includes("---")) continue
-    const firstHeader = header.trim().replace(/^\|/, "").split("|")[0].trim()
-    if (!/^role$/i.test(firstHeader)) continue
-    for (let rowIndex = index + 2; rowIndex < lines.length; rowIndex += 1) {
-      const row = lines[rowIndex]
-      if (!row.trim().startsWith("|")) break
-      const first = row.trim().replace(/^\|/, "").split("|")[0].trim()
-      if (first !== "") values.push(first)
-    }
+    if (!isRoleTableHeader(lines, index)) continue
+    collectTableRowValues(values, lines, index + 2)
   }
   return values
+}
+
+function isTableHeaderPair(lines, index) {
+  const header = lines[index]
+  const separator = lines[index + 1]
+  if (!header.trim().startsWith("|")) return false
+  if (!separator.trim().startsWith("|")) return false
+  return separator.includes("---")
+}
+
+function isRoleTableHeader(lines, index) {
+  if (!isTableHeaderPair(lines, index)) return false
+  const firstHeader = firstCell(lines[index])
+  return /^role$/i.test(firstHeader)
+}
+
+function collectTableRowValues(values, lines, startIndex) {
+  for (let rowIndex = startIndex; rowIndex < lines.length; rowIndex += 1) {
+    const row = lines[rowIndex]
+    if (!row.trim().startsWith("|")) break
+    const first = firstCell(row)
+    if (first !== "") values.push(first)
+  }
+}
+
+function firstCell(line) {
+  return line.trim().replace(/^\|/, "").split("|")[0].trim()
 }

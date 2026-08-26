@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "node --test packages/one-thing-functions/tests/*.test.mjs skills/engineering/adaptive-ai-team-bootstrap/scripts/*.test.mjs",
+    "test": "node --test packages/one-thing-functions/tests/*.test.mjs packages/forge-gate/tests/*.test.mjs skills/engineering/adaptive-ai-team-bootstrap/scripts/*.test.mjs",
     "check:skills": "npx skills add . --list",
     "release": "node scripts/release.mjs",
     "release:patch": "node scripts/release.mjs patch",

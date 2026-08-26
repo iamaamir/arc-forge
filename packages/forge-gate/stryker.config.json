@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-js/master/packages/api/schema/stryker-schema.json",
+  "packageManager": "npm",
+  "reporters": ["json", "clear-text", "progress"],
+  "testRunner": "command",
+  "commandRunner": { "command": "node --test tests/*.test.mjs" },
+  "coverageAnalysis": "off",
+  "mutate": ["src/**/*.mjs"],
+  "tempDirName": "stryker-tmp"
+}
