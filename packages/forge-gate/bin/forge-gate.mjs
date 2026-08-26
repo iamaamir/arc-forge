@@ -4,13 +4,21 @@ import { runGatesAsync, gateOrder } from "../src/check.mjs";
 import { SetupError } from "../src/errors.mjs";
 
 const args = process.argv.slice(2);
-const command = args[0];
+const [command, ...rest] = args;
 const KNOWN_FLAGS = ["--deps", "--spec", "--crap", "--mutation", "--qa"];
 const VALUE_FLAGS = new Set(["--crap", "--mutation", "--roots"]);
 const KNOWN_OPTION_PREFIXES = ["--crap=", "--mutation=", "--roots="];
 const HELP_FLAGS = new Set(["--help", "-h", "help"]);
 
-if (args.some((arg) => HELP_FLAGS.has(arg))) {
+// Q3 ruling: help is honored only when no unrecognized flag precedes it — a
+// typo'd invocation must fail with exit 2, never masquerade as a help request.
+const unknownFlag = firstUnknownFlag(rest);
+if (unknownFlag !== undefined) {
+  console.error(
+    `forge-gate: unknown flag "${unknownFlag}". Known flags: --deps, --spec, --crap, --mutation, --qa, --crap=N, --mutation=N, --roots=a,b or --roots a,b`,
+  );
+  process.exitCode = 2;
+} else if (HELP_FLAGS.has(command) || rest.some((arg) => HELP_FLAGS.has(arg))) {
   printHelp();
 } else if (command !== "check") {
   printHelp();
@@ -18,8 +26,8 @@ if (args.some((arg) => HELP_FLAGS.has(arg))) {
 } else await runCheck();
 
 async function runCheck() {
-  if (!validateFlags()) return;
-  if (!validateNumericFlags()) return;
+  // Flag validation already happened during dispatch; nothing unknown remains.
+  validateNumericFlags();
   // A gate is selected by its bare flag OR any value form (--crap=N / --crap N).
   // When the same option appears multiple times, the last occurrence wins and
   // earlier ones are ignored entirely.
@@ -41,7 +49,10 @@ async function runCheck() {
 async function executeGates(gates, options, defaultSelection) {
   const config = await loadConfigAsync(options);
   const result = await runGatesAsync(gates, config, { defaultSelection });
-  if (result.status !== 0) console.error(result.message);
+  // D1: every setup error carries the prefix exactly once, matching the flag
+  // and crash paths; gate failures stay unprefixed.
+  if (result.status === 2) console.error(`forge-gate: ${result.message}`);
+  else if (result.status !== 0) console.error(result.message);
   else console.log(result.message);
   process.exitCode = result.status;
 }
@@ -55,9 +66,10 @@ function reportGateCrash(error) {
   process.exitCode = 2;
 }
 
-function validateFlags() {
-  for (let i = 1; i < args.length; i++) {
+function firstUnknownFlag(args) {
+  for (let i = 0; i < args.length; i++) {
     const arg = args[i];
+    if (HELP_FLAGS.has(arg)) return undefined;
     if (VALUE_FLAGS.has(arg)) {
       const next = args[i + 1];
       if (next !== undefined && !next.startsWith("--")) i++;
@@ -65,13 +77,9 @@ function validateFlags() {
     }
     if (KNOWN_FLAGS.includes(arg)) continue;
     if (KNOWN_OPTION_PREFIXES.some((prefix) => arg.startsWith(prefix))) continue;
-    console.error(
-      `forge-gate: unknown flag "${arg}". Known flags: --deps, --spec, --crap, --mutation, --qa, --crap=N, --mutation=N, --roots=a,b or --roots a,b`,
-    );
-    process.exitCode = 2;
-    return false;
+    return arg;
   }
-  return true;
+  return undefined;
 }
 
 function validateNumericFlags() {
@@ -120,11 +128,13 @@ Usage:
                  [--roots=src,lib | --roots src,lib]
 
 Runs deterministic quality gates. With no gate flags, runs all configured
-gates; unconfigured optional gates (deps without dependencyRules in
-forge-gate.config.json) are skipped with a notice on stderr. Pass --deps to
-enforce dependency rules explicitly (exit 2 when unconfigured).
+gates; unconfigured optional gates (deps without dependencyRules or qa
+without qaCommand in forge-gate.config.json) are skipped with a notice on
+stderr. Pass --deps or --qa to enforce them explicitly (exit 2 when
+unconfigured).
 
 A value form (--crap=N or --crap N) selects its gate as well as overriding the
 threshold. If an option repeats, the last occurrence wins.
-Exit codes: 0 pass, 1 gate failure, 2 setup error; --help exits 0.`);
+Exit codes: 0 pass, 1 gate failure, 2 setup error; --help exits 0 unless an
+unrecognized flag precedes it (then exit 2).`);
 }

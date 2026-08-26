@@ -66,7 +66,7 @@ test("spec gate fails when testCommand exits nonzero", async () => {
   const result = await runGatesAsync(["spec"], { testCommand: "false" });
   assert.equal(result.status, 1);
   assert.equal(result.failedGate, "spec");
-  assert.equal(result.message, 'testCommand failed:\n');
+  assert.equal(result.message, "testCommand failed:");
 });
 
 test("testCommand killed by timeout fails with an actionable message", async () => {
@@ -75,6 +75,17 @@ test("testCommand killed by timeout fails with an actionable message", async () 
   assert.equal(result.failedGate, "spec");
   assert.match(result.message, /timed out after 1s/);
   assert.match(result.message, /commandTimeoutSeconds/);
+});
+
+test("timed-out command surfaces its partial output in the failure message", async () => {
+  const result = await runGatesAsync(["spec"], {
+    testCommand: `node -e "console.log('PARTIAL_TIMEOUT_MARKER'); setInterval(() => {}, 1000)"`,
+    commandTimeoutSeconds: 1,
+  });
+  assert.equal(result.status, 1);
+  assert.equal(result.failedGate, "spec");
+  assert.match(result.message, /timed out after 1s/);
+  assert.match(result.message, /PARTIAL_TIMEOUT_MARKER/);
 });
 
 test("missing qaCommand is a setup error with actionable message", async () => {
@@ -211,6 +222,27 @@ test("explicit deps selection still enforces configuration with no skip notice",
   assert.equal(warnings.output, "");
 });
 
+test("default selection skips unconfigured qa gate with a pinned stderr notice", async (t) => {
+  const warnings = captureConsoleError(t);
+  const result = await runGatesAsync(["qa"], { qaCommand: "" }, { defaultSelection: true });
+  assert.deepEqual(result, { status: 0, failedGate: null, message: "no gates selected" });
+  assert.match(warnings.output, /qaCommand not configured — QA gate skipped\. Add "qaCommand" to forge-gate\.config\.json to enforce it\./);
+});
+
+test("explicit qa selection still requires configuration with no skip notice", async (t) => {
+  const warnings = captureConsoleError(t);
+  const result = await runGatesAsync(["qa"], { qaCommand: "" });
+  assert.equal(result.status, 2);
+  assert.equal(warnings.output, "");
+});
+
+test("default selection runs configured qa gate without a skip notice", async (t) => {
+  const warnings = captureConsoleError(t);
+  const result = await runGatesAsync(["qa"], { qaCommand: "true" }, { defaultSelection: true });
+  assert.deepEqual(result, { status: 0, failedGate: null, message: "qa gates passed" });
+  assert.equal(warnings.output, "");
+});
+
 function captureConsoleError(t) {
   const original = console.error;
   const captured = { output: "" };
@@ -250,6 +282,23 @@ test("command killed by output overflow keeps captured output and flags truncati
   assert.equal(result.status, 1);
   assert.match(result.message, /^testCommand failed:\nHEAD/);
   assert.match(result.message, /capture buffer and was truncated/);
+});
+
+test("multi-megabyte failure output is echoed head and tail only with a size-stating marker", async (t) => {
+  const dir = makeTempDir(t, "gnt-echocap-");
+  process.chdir(dir);
+  const result = await runGatesAsync(["spec"], {
+    testCommand:
+      `node -e "process.stdout.write('HEADMARKER');` +
+      ` for (let i = 0; i < 850; i++) process.stdout.write('x'.repeat(10000));` +
+      ` process.stdout.write('TAILMARKER'); process.exitCode = 1;"`,
+  });
+  assert.equal(result.status, 1);
+  assert.ok(Buffer.byteLength(result.message) < 32 * 1024, `message too large: ${Buffer.byteLength(result.message)} bytes`);
+  assert.match(result.message, /^testCommand failed:\nHEADMARKER/);
+  assert.match(result.message, /TAILMARKER$/);
+  assert.match(result.message, /output truncated for display: \d+ bytes captured/);
+  assert.match(result.message, /redirect your command's output to a file/);
 });
 
 test("command that cannot spawn reports the spawn error as could-not-run", async (t) => {

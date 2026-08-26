@@ -8,6 +8,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { runGatesAsync } from "../src/check.mjs";
 import { loadConfigAsync } from "../src/config.mjs";
+import { SetupError } from "../src/errors.mjs";
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const cli = path.resolve(testDir, "../bin/forge-gate.mjs");
@@ -34,7 +35,12 @@ function makeProject(t, files, config = {}) {
 
 async function runDeps(t, files, config) {
   const { config: merged } = makeProject(t, files, config);
-  return runGatesAsync(["deps"], await loadConfigAsync(merged));
+  try {
+    return await runGatesAsync(["deps"], await loadConfigAsync(merged));
+  } catch (error) {
+    if (error instanceof SetupError) return { status: 2, failedGate: null, message: error.message };
+    throw error;
+  }
 }
 
 const RULES = (rules, extra = {}) => ({ dependencyRules: { rules, allowNodeModules: true, unmatched: "allow", ...extra } });

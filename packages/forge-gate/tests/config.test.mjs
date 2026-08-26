@@ -108,3 +108,57 @@ test("string roots in config raise a descriptive SetupError", async (t) => {
 test("non-string roots entries are rejected", async () => {
   await assert.rejects(() => loadConfigAsync({ roots: [42] }), /roots must be an array of directories/);
 });
+
+test("null dependencyRules is a setup error naming the key", async (t) => {
+  const dir = withTempDir(t);
+  writeFileSync(path.join(dir, "forge-gate.config.json"), JSON.stringify({ dependencyRules: null }));
+  await assert.rejects(
+    () => loadConfigAsync({}),
+    (error) => {
+      assert.ok(error instanceof SetupError);
+      assert.match(error.message, /dependencyRules must be an object/);
+      return true;
+    },
+  );
+});
+
+test("non-object dependencyRules values are setup errors", async () => {
+  await assert.rejects(() => loadConfigAsync({ dependencyRules: "src/**" }), /dependencyRules must be an object/);
+  await assert.rejects(() => loadConfigAsync({ dependencyRules: 42 }), /dependencyRules must be an object/);
+});
+
+for (const key of ["crapThreshold", "mutationScoreThreshold", "commandTimeoutSeconds"]) {
+  test(`non-numeric ${key} config value is a setup error`, async (t) => {
+    const dir = withTempDir(t);
+    writeFileSync(path.join(dir, "forge-gate.config.json"), JSON.stringify({ [key]: "abc" }));
+    await assert.rejects(
+      () => loadConfigAsync({}),
+      (error) => {
+        assert.ok(error instanceof SetupError);
+        assert.match(error.message, new RegExp(`${key} must be a finite number`));
+        return true;
+      },
+    );
+  });
+
+  test(`non-finite ${key} config value is a setup error`, async () => {
+    await assert.rejects(() => loadConfigAsync({ [key]: Infinity }), new RegExp(`${key} must be a finite number`));
+  });
+}
+
+test("commandTimeoutSeconds of zero is rejected with exit-2 semantics", async (t) => {
+  const dir = withTempDir(t);
+  writeFileSync(path.join(dir, "forge-gate.config.json"), JSON.stringify({ commandTimeoutSeconds: 0 }));
+  await assert.rejects(
+    () => loadConfigAsync({}),
+    (error) => {
+      assert.ok(error instanceof SetupError);
+      assert.match(error.message, /commandTimeoutSeconds must be greater than zero/);
+      return true;
+    },
+  );
+});
+
+test("negative commandTimeoutSeconds is rejected", async () => {
+  await assert.rejects(() => loadConfigAsync({ commandTimeoutSeconds: -5 }), /commandTimeoutSeconds must be greater than zero/);
+});

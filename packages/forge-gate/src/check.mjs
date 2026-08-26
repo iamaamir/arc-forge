@@ -13,13 +13,21 @@ export const UNCONFIGURED_DEPS_NOTICE =
   "dependency rules not configured — some imports are ungated. " +
   "Run the forge-gate skill if available, or see https://github.com/iamaamir/arc-forge#dependency-rules";
 
+export const UNCONFIGURED_QA_NOTICE =
+  'qaCommand not configured — QA gate skipped. Add "qaCommand" to forge-gate.config.json to enforce it.';
+
+const OPTIONAL_GATES = [
+  { gate: "deps", isConfigured: (config) => config.dependencyRules !== undefined, notice: UNCONFIGURED_DEPS_NOTICE },
+  { gate: "qa", isConfigured: (config) => Boolean(config.qaCommand), notice: UNCONFIGURED_QA_NOTICE },
+];
+
 export function gateOrder() {
   return [...GATE_ORDER];
 }
 
 export async function runGatesAsync(requestedGates, config, { defaultSelection = false } = {}) {
   let gates = GATE_ORDER.filter((gate) => requestedGates.includes(gate));
-  gates = omitUnconfiguredDeps(gates, config, defaultSelection);
+  gates = omitUnconfiguredOptional(gates, config, defaultSelection);
   try {
     return await runAllGates(gates, config);
   } catch (error) {
@@ -27,10 +35,14 @@ export async function runGatesAsync(requestedGates, config, { defaultSelection =
   }
 }
 
-function omitUnconfiguredDeps(gates, config, defaultSelection) {
-  if (!defaultSelection || !gates.includes("deps") || config.dependencyRules !== undefined) return gates;
-  console.error(UNCONFIGURED_DEPS_NOTICE);
-  return gates.filter((gate) => gate !== "deps");
+function omitUnconfiguredOptional(gates, config, defaultSelection) {
+  if (!defaultSelection) return gates;
+  return gates.filter((gate) => {
+    const optional = OPTIONAL_GATES.find((entry) => entry.gate === gate);
+    if (!optional || optional.isConfigured(config)) return true;
+    console.error(optional.notice);
+    return false;
+  });
 }
 
 async function runAllGates(gates, config) {
@@ -73,14 +85,39 @@ function runCommandGate(key, config) {
   return [commandGateFailure(key, result)];
 }
 
+const ECHO_HEAD_BYTES = 8 * 1024;
+const ECHO_TAIL_BYTES = 8 * 1024;
+
 function commandGateFailure(key, result) {
   if (result.timedOut) {
-    return `${key} timed out after ${result.timeoutSeconds}s — raise commandTimeoutSeconds in forge-gate.config.json if your suite is slow`;
+    return (
+      `${key} timed out after ${result.timeoutSeconds}s — raise commandTimeoutSeconds in forge-gate.config.json ` +
+      `if your suite is slow${capturedOutput(result)}`
+    );
   }
   if (spawnError(result)) {
-    return `${key} could not run: ${result.error.message}`;
+    return `${key} could not run: ${result.error.message}${capturedOutput(result)}`;
   }
-  return `${key} failed:\n${result.output}${truncationNotice(result)}`;
+  return `${key} failed:${capturedOutput(result)}${bufferNotice(result)}`;
+}
+
+function capturedOutput(result) {
+  if (!result.output) return "";
+  return `\n${capEcho(result.output)}`;
+}
+
+// Echoing megabytes of child output can ENOBUFS our own parent's capture
+// buffer, killing forge-gate before any exit code is set ("agents cannot argue
+// with an exit code"). Show head and tail only, with the total size stated.
+function capEcho(output) {
+  const totalBytes = Buffer.byteLength(output);
+  if (totalBytes <= ECHO_HEAD_BYTES + ECHO_TAIL_BYTES) return output;
+  return (
+    `${output.slice(0, ECHO_HEAD_BYTES)}\n` +
+    `[output truncated for display: ${totalBytes} bytes captured — showing first ${ECHO_HEAD_BYTES} ` +
+    `and last ${ECHO_TAIL_BYTES}; redirect your command's output to a file to inspect the full log]\n` +
+    `${output.slice(-ECHO_TAIL_BYTES)}`
+  );
 }
 
 // ENOBUFS means the capture buffer was exceeded; the child was killed but its
@@ -89,7 +126,7 @@ function spawnError(result) {
   return Boolean(result.error) && !result.truncated;
 }
 
-function truncationNotice(result) {
+function bufferNotice(result) {
   return result.truncated
     ? "\n(output exceeded the capture buffer and was truncated — fix the noisy output or raise it at the source)"
     : "";

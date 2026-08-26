@@ -269,6 +269,30 @@ test("cli help request after check also exits 0", (t) => {
   assert.match(result.stdout, /Usage:/);
 });
 
+test("unknown flag before help wins over help and exits 2", (t) => {
+  const dir = makeBadProject(t);
+  const result = runCli(["check", "--bogus", "--help"], dir);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /unknown flag "--bogus"/);
+  assert.doesNotMatch(result.stdout, /Usage:/);
+});
+
+test("help before an unknown flag is still honored with exit 0", (t) => {
+  const dir = makeBadProject(t);
+  const result = runCli(["check", "--help", "--bogus"], dir);
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Usage:/);
+});
+
+for (const helpArg of ["--help", "-h", "help"]) {
+  test(`cli ${helpArg} preceded only by valid flags prints help and exits 0`, (t) => {
+    const dir = makeBadProject(t);
+    const result = runCli(["check", "--deps", helpArg], dir);
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /Usage:/);
+  });
+}
+
 test("unknown command still prints help and exits 2", (t) => {
   const dir = makeBadProject(t);
   const result = runCli(["nonsense"], dir);
@@ -292,8 +316,59 @@ test("output past the capture buffer still reaches the gate message", (t) => {
   assert.match(result.stderr, /capture buffer|truncated/i);
 });
 
-function runCli(args, cwdDir) {
-  return spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", cwd: cwdDir, maxBuffer: 64 * 1024 * 1024 });
+test("bare check without qaCommand skips the qa gate with a stderr notice and exits 0", (t) => {
+  const dir = makeCleanProject(t);
+  writeFileSync(
+    path.join(dir, "forge-gate.config.json"),
+    JSON.stringify({ testCommand: "true", qaCommand: "" }),
+  );
+  const result = runCli(["check"], dir);
+  assert.equal(result.status, 0);
+  assert.match(result.stderr, /qaCommand not configured — QA gate skipped\. Add "qaCommand" to forge-gate\.config\.json to enforce it\./);
+  assert.doesNotMatch(result.stdout, /qa gates passed/);
+});
+
+test("explicit --qa without qaCommand still exits 2 with no skip notice", (t) => {
+  const dir = makeTempDir(t, "gnt-cli-qaexp-");
+  const result = runCli(["check", "--qa"], dir);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /qaCommand is not set/);
+  assert.doesNotMatch(result.stderr, /QA gate skipped/);
+});
+
+test("setup errors from the gate runner carry the forge-gate prefix exactly once", (t) => {
+  const dir = makeBadProject(t);
+  writeFileSync(path.join(dir, "forge-gate.config.json"), JSON.stringify({ roots: null }));
+  const result = runCli(["check"], dir);
+  assert.equal(result.status, 2);
+  const occurrences = result.stderr.split("forge-gate: ").length - 1;
+  assert.equal(occurrences, 1);
+});
+
+test("cli keeps a numeric exit code when a failing gate echoes multi-megabyte output", (t) => {
+  const dir = makeTempDir(t, "gnt-cli-capexit-");
+  writeFileSync(
+    path.join(dir, "flood.mjs"),
+    'process.stdout.write("HEADMARKER");\n' +
+      'for (let i = 0; i < 850; i++) process.stdout.write("x".repeat(10000));\n' +
+      'process.stdout.write("TAILMARKER");\nprocess.exitCode = 1;\n',
+  );
+  writeFileSync(path.join(dir, "forge-gate.config.json"), JSON.stringify({ testCommand: "node flood.mjs" }));
+  // A capped consumer (default spawnSync maxBuffer is 1MB): forge-gate must not
+  // flood its parent's buffer and die before setting an exit code.
+  const result = runCli(["check", "--spec"], dir, { maxBuffer: 1024 * 1024 });
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 1);
+  assert.ok(Buffer.byteLength(result.stderr) < 1024 * 1024);
+});
+
+function runCli(args, cwdDir, options = {}) {
+  return spawnSync(process.execPath, [cli, ...args], {
+    encoding: "utf8",
+    cwd: cwdDir,
+    maxBuffer: 64 * 1024 * 1024,
+    ...options,
+  });
 }
 
 test("cli exits 2 when requested gate lacks its command config", (t) => {
