@@ -24,6 +24,8 @@ npx skills add iamaamir/arc-forge --list
 
 ## Skills
 
+- [`stepwise`](skills/engineering/stepwise/SKILL.md) — guided engineering workflow; approve each of the five stages before continuing.
+- [`plan-go`](skills/engineering/plan-go/SKILL.md) — investigate and design, approve one plan, then implement, verify, and review autonomously.
 - [`adaptive-ai-team-bootstrap`](skills/engineering/adaptive-ai-team-bootstrap/SKILL.md) — drop an adaptive AI product-engineering team into any project with induction, Memory.md, roles, specialist teams, governance, and verification loops.
 - [`one-thing-function`](skills/engineering/one-thing-function/SKILL.md) — strict function-design rules for new or existing codebases.
 - [`seeded-color-theme`](skills/design/seeded-color-theme/SKILL.md) — CSS-only palette generation from one seed color without tint-ladder slop.
@@ -119,6 +121,10 @@ arc-forge/
       seeded-color-theme/
         SKILL.md
     engineering/
+      stepwise/
+        SKILL.md
+      plan-go/
+        SKILL.md
       adaptive-ai-team-bootstrap/
         SKILL.md
         references/
